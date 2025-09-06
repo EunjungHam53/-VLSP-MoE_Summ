@@ -1776,17 +1776,15 @@ class MyDataCollatorForSeq2Seq:
     label_pad_token_id: int = -100
     model_args: object = None
     hash_list = dict()
-    hash_list['cnndm'] = 0
-    hash_list['wiki'] = 1
-    hash_list['pubmed'] = 2
-    hash_list['xsum'] = 3
-    hash_list['arxiv'] = 4
-    hash_list['email'] = 5
-    hash_list['multi'] = 6
-    hash_list['billsum'] = 7
-    hash_list['giga'] = 8
-    hash_list['patent'] =9
-    hash_list['reddit_short'] = 10
+    # Vietnamese hash list
+    hash_list['Văn hóa - Xã hội'] = 0
+    hash_list['Pháp luật'] = 1
+    hash_list['Kinh tế'] = 2
+    hash_list['Khoa học - Công nghệ'] = 3
+    hash_list['Giải trí - Thể thao'] = 4
+    hash_list['Đời sống'] = 5
+    hash_list['Thế giới'] = 6
+    hash_list['Giáo dục'] = 7
 
     def __call__(self, features):
         labels = [feature["labels"] for feature in features] if "labels" in features[0].keys() else None

@@ -8,6 +8,7 @@ from bert_score import score
 import nltk
 import numpy as np
 import evaluate
+from underthesea import sent_tokenize
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +36,8 @@ class MetricCompute:
 
         # rougeLSum expects newline after each sentence
         if metric_name == "rouge":
-            preds = ["\n".join([split_char(s) for s in nltk.sent_tokenize(pred)]) for pred in preds]
-            labels = ["\n".join([split_char(s) for s in nltk.sent_tokenize(label)]) for label in labels]
+            preds = ["\n".join([split_char(s) for s in sent_tokenize(pred)]) for pred in preds]
+            labels = ["\n".join([split_char(s) for s in sent_tokenize(label)]) for label in labels]
 
         return preds, labels
 

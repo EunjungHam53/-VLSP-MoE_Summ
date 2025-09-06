@@ -6,7 +6,7 @@ Fine-tuning the library models for sequence to sequence.
 """
 from args import ModelArguments, DataTrainingArguments, my_Seq2SeqTrainingArguments
 from compute_metric import MetricCompute
-from transformers.models.bart.tokenization_bart import BartTokenizer
+from transformers.models.bart.tokenization_bart import BartTokenizer, AutoTokenizer
 from transformers.trainer_utils import get_last_checkpoint, is_main_process
 from transformers import (
     HfArgumentParser,
@@ -122,7 +122,7 @@ def main():
         model_args.model_name_or_path = last_checkpoint
 
     logger.info(f'******* Loading model form pretrained {model_args.model_name_or_path} **********')
-    tokenizer = BartTokenizer.from_pretrained(model_args.model_name_or_path)  # 如果用bart-base就用这行
+    tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path)  # 如果用bart-base就用这行
     logger.info('load BartTokenizer')
 
     config = BartConfig.from_pretrained(model_args.model_name_or_path)
@@ -136,6 +136,9 @@ def main():
     config.moe_load = training_args.moe_load
     config.share_importance = model_args.share_importance
     config.keep_resident = model_args.keep_resident
+
+    # Đảm bảo vocab_size đúng (BARTPho-word-base = 50265)
+    config.vocab_size = tokenizer.vocab_size
 
     # Thêm dòng này cho MoEBERT
     config.moebert_load_experts = training_args.moe_load
