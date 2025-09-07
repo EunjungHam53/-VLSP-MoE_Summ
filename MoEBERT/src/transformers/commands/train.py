@@ -16,9 +16,8 @@ import os
 from argparse import ArgumentParser, Namespace
 
 from ..data import SingleSentenceClassificationProcessor as Processor
-from ..file_utils import is_tf_available, is_torch_available
 from ..pipelines import TextClassificationPipeline
-from ..utils import logging
+from ..utils import is_tf_available, is_torch_available, logging
 from . import BaseTransformersCLICommand
 
 
@@ -54,8 +53,7 @@ class TrainCommand(BaseTransformersCLICommand):
             "--train_data",
             type=str,
             required=True,
-            help="path to train (and optionally evaluation) dataset as a csv with "
-            "tab separated labels and sentences.",
+            help="path to train (and optionally evaluation) dataset as a csv with tab separated labels and sentences.",
         )
         train_parser.add_argument(
             "--column_label", type=int, default=0, help="Column of the dataset csv file with example labels."
@@ -75,7 +73,7 @@ class TrainCommand(BaseTransformersCLICommand):
             "--validation_split",
             type=float,
             default=0.1,
-            help="if validation dataset is not provided, fraction of train dataset " "to use as validation dataset.",
+            help="if validation dataset is not provided, fraction of train dataset to use as validation dataset.",
         )
 
         train_parser.add_argument("--output", type=str, default="./", help="path to saved the trained model.")
@@ -84,7 +82,7 @@ class TrainCommand(BaseTransformersCLICommand):
             "--task", type=str, default="text_classification", help="Task to train the model on."
         )
         train_parser.add_argument(
-            "--model", type=str, default="bert-base-uncased", help="Model's name or path to stored model."
+            "--model", type=str, default="google-bert/bert-base-uncased", help="Model's name or path to stored model."
         )
         train_parser.add_argument("--train_batch_size", type=int, default=32, help="Batch size for training.")
         train_parser.add_argument("--valid_batch_size", type=int, default=64, help="Batch size for validation.")
@@ -93,7 +91,7 @@ class TrainCommand(BaseTransformersCLICommand):
         train_parser.set_defaults(func=train_command_factory)
 
     def __init__(self, args: Namespace):
-        self.logger = logging.get_logger("transformers-cli/training")
+        self.logger = logging.get_logger("transformers/training")
 
         self.framework = "tf" if is_tf_available() else "torch"
 
@@ -104,7 +102,7 @@ class TrainCommand(BaseTransformersCLICommand):
         self.column_text = args.column_text
         self.column_id = args.column_id
 
-        self.logger.info("Loading {} pipeline for {}".format(args.task, args.model))
+        self.logger.info(f"Loading {args.task} pipeline for {args.model}")
         if args.task == "text_classification":
             self.pipeline = TextClassificationPipeline.from_pretrained(args.model)
         elif args.task == "token_classification":
@@ -112,7 +110,7 @@ class TrainCommand(BaseTransformersCLICommand):
         elif args.task == "question_answering":
             raise NotImplementedError
 
-        self.logger.info("Loading dataset from {}".format(args.train_data))
+        self.logger.info(f"Loading dataset from {args.train_data}")
         self.train_dataset = Processor.create_from_csv(
             args.train_data,
             column_label=args.column_label,
@@ -122,7 +120,7 @@ class TrainCommand(BaseTransformersCLICommand):
         )
         self.valid_dataset = None
         if args.validation_data:
-            self.logger.info("Loading validation dataset from {}".format(args.validation_data))
+            self.logger.info(f"Loading validation dataset from {args.validation_data}")
             self.valid_dataset = Processor.create_from_csv(
                 args.validation_data,
                 column_label=args.column_label,

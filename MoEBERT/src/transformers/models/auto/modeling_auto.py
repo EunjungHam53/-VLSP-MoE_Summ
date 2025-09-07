@@ -12,1894 +12,2103 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Auto Model class. """
-
+"""Auto Model class."""
 
 import warnings
 from collections import OrderedDict
 
-from ...configuration_utils import PretrainedConfig
-from ...file_utils import add_start_docstrings
 from ...utils import logging
-
-# Add modeling imports here
-from ..albert.modeling_albert import (
-    AlbertForMaskedLM,
-    AlbertForMultipleChoice,
-    AlbertForPreTraining,
-    AlbertForQuestionAnswering,
-    AlbertForSequenceClassification,
-    AlbertForTokenClassification,
-    AlbertModel,
+from .auto_factory import (
+    _BaseAutoBackboneClass,
+    _BaseAutoModelClass,
+    _LazyAutoMapping,
+    auto_class_update,
 )
-from ..bart.modeling_bart import (
-    BartForCausalLM,
-    BartForConditionalGeneration,
-    BartForQuestionAnswering,
-    BartForSequenceClassification,
-    BartModel,
-)
-from ..bert.modeling_bert import (
-    BertForMaskedLM,
-    BertForMultipleChoice,
-    BertForNextSentencePrediction,
-    BertForPreTraining,
-    BertForQuestionAnswering,
-    BertForSequenceClassification,
-    BertForTokenClassification,
-    BertLMHeadModel,
-    BertModel,
-)
-from ..bert_generation.modeling_bert_generation import BertGenerationDecoder, BertGenerationEncoder
-from ..blenderbot.modeling_blenderbot import BlenderbotForCausalLM, BlenderbotForConditionalGeneration, BlenderbotModel
-from ..blenderbot_small.modeling_blenderbot_small import (
-    BlenderbotSmallForCausalLM,
-    BlenderbotSmallForConditionalGeneration,
-    BlenderbotSmallModel,
-)
-from ..camembert.modeling_camembert import (
-    CamembertForCausalLM,
-    CamembertForMaskedLM,
-    CamembertForMultipleChoice,
-    CamembertForQuestionAnswering,
-    CamembertForSequenceClassification,
-    CamembertForTokenClassification,
-    CamembertModel,
-)
-from ..convbert.modeling_convbert import (
-    ConvBertForMaskedLM,
-    ConvBertForMultipleChoice,
-    ConvBertForQuestionAnswering,
-    ConvBertForSequenceClassification,
-    ConvBertForTokenClassification,
-    ConvBertModel,
-)
-from ..ctrl.modeling_ctrl import CTRLForSequenceClassification, CTRLLMHeadModel, CTRLModel
-from ..deberta.modeling_deberta import (
-    DebertaForMaskedLM,
-    DebertaForQuestionAnswering,
-    DebertaForSequenceClassification,
-    DebertaForTokenClassification,
-    DebertaModel,
-)
-from ..deberta_v2.modeling_deberta_v2 import (
-    DebertaV2ForMaskedLM,
-    DebertaV2ForQuestionAnswering,
-    DebertaV2ForSequenceClassification,
-    DebertaV2ForTokenClassification,
-    DebertaV2Model,
-)
-from ..distilbert.modeling_distilbert import (
-    DistilBertForMaskedLM,
-    DistilBertForMultipleChoice,
-    DistilBertForQuestionAnswering,
-    DistilBertForSequenceClassification,
-    DistilBertForTokenClassification,
-    DistilBertModel,
-)
-from ..dpr.modeling_dpr import DPRQuestionEncoder
-from ..electra.modeling_electra import (
-    ElectraForMaskedLM,
-    ElectraForMultipleChoice,
-    ElectraForPreTraining,
-    ElectraForQuestionAnswering,
-    ElectraForSequenceClassification,
-    ElectraForTokenClassification,
-    ElectraModel,
-)
-from ..encoder_decoder.modeling_encoder_decoder import EncoderDecoderModel
-from ..flaubert.modeling_flaubert import (
-    FlaubertForMultipleChoice,
-    FlaubertForQuestionAnsweringSimple,
-    FlaubertForSequenceClassification,
-    FlaubertForTokenClassification,
-    FlaubertModel,
-    FlaubertWithLMHeadModel,
-)
-from ..fsmt.modeling_fsmt import FSMTForConditionalGeneration, FSMTModel
-from ..funnel.modeling_funnel import (
-    FunnelForMaskedLM,
-    FunnelForMultipleChoice,
-    FunnelForPreTraining,
-    FunnelForQuestionAnswering,
-    FunnelForSequenceClassification,
-    FunnelForTokenClassification,
-    FunnelModel,
-)
-from ..gpt2.modeling_gpt2 import GPT2ForSequenceClassification, GPT2LMHeadModel, GPT2Model
-from ..ibert.modeling_ibert import (
-    IBertForMaskedLM,
-    IBertForMultipleChoice,
-    IBertForQuestionAnswering,
-    IBertForSequenceClassification,
-    IBertForTokenClassification,
-    IBertModel,
-)
-from ..layoutlm.modeling_layoutlm import (
-    LayoutLMForMaskedLM,
-    LayoutLMForSequenceClassification,
-    LayoutLMForTokenClassification,
-    LayoutLMModel,
-)
-from ..led.modeling_led import (
-    LEDForConditionalGeneration,
-    LEDForQuestionAnswering,
-    LEDForSequenceClassification,
-    LEDModel,
-)
-from ..longformer.modeling_longformer import (
-    LongformerForMaskedLM,
-    LongformerForMultipleChoice,
-    LongformerForQuestionAnswering,
-    LongformerForSequenceClassification,
-    LongformerForTokenClassification,
-    LongformerModel,
-)
-from ..lxmert.modeling_lxmert import LxmertForPreTraining, LxmertForQuestionAnswering, LxmertModel
-from ..m2m_100.modeling_m2m_100 import M2M100ForConditionalGeneration, M2M100Model
-from ..marian.modeling_marian import MarianForCausalLM, MarianModel, MarianMTModel
-from ..mbart.modeling_mbart import (
-    MBartForCausalLM,
-    MBartForConditionalGeneration,
-    MBartForQuestionAnswering,
-    MBartForSequenceClassification,
-    MBartModel,
-)
-from ..mobilebert.modeling_mobilebert import (
-    MobileBertForMaskedLM,
-    MobileBertForMultipleChoice,
-    MobileBertForNextSentencePrediction,
-    MobileBertForPreTraining,
-    MobileBertForQuestionAnswering,
-    MobileBertForSequenceClassification,
-    MobileBertForTokenClassification,
-    MobileBertModel,
-)
-from ..mpnet.modeling_mpnet import (
-    MPNetForMaskedLM,
-    MPNetForMultipleChoice,
-    MPNetForQuestionAnswering,
-    MPNetForSequenceClassification,
-    MPNetForTokenClassification,
-    MPNetModel,
-)
-from ..mt5.modeling_mt5 import MT5ForConditionalGeneration, MT5Model
-from ..openai.modeling_openai import OpenAIGPTForSequenceClassification, OpenAIGPTLMHeadModel, OpenAIGPTModel
-from ..pegasus.modeling_pegasus import PegasusForCausalLM, PegasusForConditionalGeneration, PegasusModel
-from ..prophetnet.modeling_prophetnet import ProphetNetForCausalLM, ProphetNetForConditionalGeneration, ProphetNetModel
-from ..rag.modeling_rag import (  # noqa: F401 - need to import all RagModels to be in globals() function
-    RagModel,
-    RagSequenceForGeneration,
-    RagTokenForGeneration,
-)
-from ..reformer.modeling_reformer import (
-    ReformerForMaskedLM,
-    ReformerForQuestionAnswering,
-    ReformerForSequenceClassification,
-    ReformerModel,
-    ReformerModelWithLMHead,
-)
-from ..retribert.modeling_retribert import RetriBertModel
-from ..roberta.modeling_roberta import (
-    RobertaForCausalLM,
-    RobertaForMaskedLM,
-    RobertaForMultipleChoice,
-    RobertaForQuestionAnswering,
-    RobertaForSequenceClassification,
-    RobertaForTokenClassification,
-    RobertaModel,
-)
-from ..speech_to_text.modeling_speech_to_text import Speech2TextForConditionalGeneration, Speech2TextModel
-from ..squeezebert.modeling_squeezebert import (
-    SqueezeBertForMaskedLM,
-    SqueezeBertForMultipleChoice,
-    SqueezeBertForQuestionAnswering,
-    SqueezeBertForSequenceClassification,
-    SqueezeBertForTokenClassification,
-    SqueezeBertModel,
-)
-from ..t5.modeling_t5 import T5ForConditionalGeneration, T5Model
-from ..tapas.modeling_tapas import (
-    TapasForMaskedLM,
-    TapasForQuestionAnswering,
-    TapasForSequenceClassification,
-    TapasModel,
-)
-from ..transfo_xl.modeling_transfo_xl import TransfoXLForSequenceClassification, TransfoXLLMHeadModel, TransfoXLModel
-from ..wav2vec2.modeling_wav2vec2 import Wav2Vec2ForMaskedLM, Wav2Vec2Model
-from ..xlm.modeling_xlm import (
-    XLMForMultipleChoice,
-    XLMForQuestionAnsweringSimple,
-    XLMForSequenceClassification,
-    XLMForTokenClassification,
-    XLMModel,
-    XLMWithLMHeadModel,
-)
-from ..xlm_prophetnet.modeling_xlm_prophetnet import (
-    XLMProphetNetForCausalLM,
-    XLMProphetNetForConditionalGeneration,
-    XLMProphetNetModel,
-)
-from ..xlm_roberta.modeling_xlm_roberta import (
-    XLMRobertaForCausalLM,
-    XLMRobertaForMaskedLM,
-    XLMRobertaForMultipleChoice,
-    XLMRobertaForQuestionAnswering,
-    XLMRobertaForSequenceClassification,
-    XLMRobertaForTokenClassification,
-    XLMRobertaModel,
-)
-from ..xlnet.modeling_xlnet import (
-    XLNetForMultipleChoice,
-    XLNetForQuestionAnsweringSimple,
-    XLNetForSequenceClassification,
-    XLNetForTokenClassification,
-    XLNetLMHeadModel,
-    XLNetModel,
-)
-from .configuration_auto import (
-    AlbertConfig,
-    AutoConfig,
-    BartConfig,
-    BertConfig,
-    BertGenerationConfig,
-    BlenderbotConfig,
-    BlenderbotSmallConfig,
-    CamembertConfig,
-    ConvBertConfig,
-    CTRLConfig,
-    DebertaConfig,
-    DebertaV2Config,
-    DistilBertConfig,
-    DPRConfig,
-    ElectraConfig,
-    EncoderDecoderConfig,
-    FlaubertConfig,
-    FSMTConfig,
-    FunnelConfig,
-    GPT2Config,
-    IBertConfig,
-    LayoutLMConfig,
-    LEDConfig,
-    LongformerConfig,
-    LxmertConfig,
-    M2M100Config,
-    MarianConfig,
-    MBartConfig,
-    MobileBertConfig,
-    MPNetConfig,
-    MT5Config,
-    OpenAIGPTConfig,
-    PegasusConfig,
-    ProphetNetConfig,
-    ReformerConfig,
-    RetriBertConfig,
-    RobertaConfig,
-    Speech2TextConfig,
-    SqueezeBertConfig,
-    T5Config,
-    TapasConfig,
-    TransfoXLConfig,
-    Wav2Vec2Config,
-    XLMConfig,
-    XLMProphetNetConfig,
-    XLMRobertaConfig,
-    XLNetConfig,
-    replace_list_option_in_docstrings,
-)
+from .configuration_auto import CONFIG_MAPPING_NAMES
 
 
 logger = logging.get_logger(__name__)
 
-
-MODEL_MAPPING = OrderedDict(
+MODEL_MAPPING_NAMES = OrderedDict(
     [
         # Base model mapping
-        (Speech2TextConfig, Speech2TextModel),
-        (Wav2Vec2Config, Wav2Vec2Model),
-        (M2M100Config, M2M100Model),
-        (ConvBertConfig, ConvBertModel),
-        (LEDConfig, LEDModel),
-        (BlenderbotSmallConfig, BlenderbotSmallModel),
-        (RetriBertConfig, RetriBertModel),
-        (MT5Config, MT5Model),
-        (T5Config, T5Model),
-        (PegasusConfig, PegasusModel),
-        (MarianConfig, MarianMTModel),
-        (MBartConfig, MBartModel),
-        (BlenderbotConfig, BlenderbotModel),
-        (DistilBertConfig, DistilBertModel),
-        (AlbertConfig, AlbertModel),
-        (CamembertConfig, CamembertModel),
-        (XLMRobertaConfig, XLMRobertaModel),
-        (BartConfig, BartModel),
-        (LongformerConfig, LongformerModel),
-        (RobertaConfig, RobertaModel),
-        (LayoutLMConfig, LayoutLMModel),
-        (SqueezeBertConfig, SqueezeBertModel),
-        (BertConfig, BertModel),
-        (OpenAIGPTConfig, OpenAIGPTModel),
-        (GPT2Config, GPT2Model),
-        (MobileBertConfig, MobileBertModel),
-        (TransfoXLConfig, TransfoXLModel),
-        (XLNetConfig, XLNetModel),
-        (FlaubertConfig, FlaubertModel),
-        (FSMTConfig, FSMTModel),
-        (XLMConfig, XLMModel),
-        (CTRLConfig, CTRLModel),
-        (ElectraConfig, ElectraModel),
-        (ReformerConfig, ReformerModel),
-        (FunnelConfig, FunnelModel),
-        (LxmertConfig, LxmertModel),
-        (BertGenerationConfig, BertGenerationEncoder),
-        (DebertaConfig, DebertaModel),
-        (DebertaV2Config, DebertaV2Model),
-        (DPRConfig, DPRQuestionEncoder),
-        (XLMProphetNetConfig, XLMProphetNetModel),
-        (ProphetNetConfig, ProphetNetModel),
-        (MPNetConfig, MPNetModel),
-        (TapasConfig, TapasModel),
-        (MarianConfig, MarianModel),
-        (IBertConfig, IBertModel),
+        ("albert", "AlbertModel"),
+        ("align", "AlignModel"),
+        ("altclip", "AltCLIPModel"),
+        ("aria", "AriaModel"),
+        ("aria_text", "AriaTextModel"),
+        ("audio-spectrogram-transformer", "ASTModel"),
+        ("autoformer", "AutoformerModel"),
+        ("aya_vision", "AyaVisionModel"),
+        ("bamba", "BambaModel"),
+        ("bark", "BarkModel"),
+        ("bart", "BartModel"),
+        ("beit", "BeitModel"),
+        ("bert", "BertModel"),
+        ("bert-generation", "BertGenerationEncoder"),
+        ("big_bird", "BigBirdModel"),
+        ("bigbird_pegasus", "BigBirdPegasusModel"),
+        ("biogpt", "BioGptModel"),
+        ("bit", "BitModel"),
+        ("bitnet", "BitNetModel"),
+        ("blenderbot", "BlenderbotModel"),
+        ("blenderbot-small", "BlenderbotSmallModel"),
+        ("blip", "BlipModel"),
+        ("blip-2", "Blip2Model"),
+        ("blip_2_qformer", "Blip2QFormerModel"),
+        ("bloom", "BloomModel"),
+        ("bridgetower", "BridgeTowerModel"),
+        ("bros", "BrosModel"),
+        ("camembert", "CamembertModel"),
+        ("canine", "CanineModel"),
+        ("chameleon", "ChameleonModel"),
+        ("chinese_clip", "ChineseCLIPModel"),
+        ("chinese_clip_vision_model", "ChineseCLIPVisionModel"),
+        ("clap", "ClapModel"),
+        ("clip", "CLIPModel"),
+        ("clip_text_model", "CLIPTextModel"),
+        ("clip_vision_model", "CLIPVisionModel"),
+        ("clipseg", "CLIPSegModel"),
+        ("clvp", "ClvpModelForConditionalGeneration"),
+        ("code_llama", "LlamaModel"),
+        ("codegen", "CodeGenModel"),
+        ("cohere", "CohereModel"),
+        ("cohere2", "Cohere2Model"),
+        ("conditional_detr", "ConditionalDetrModel"),
+        ("convbert", "ConvBertModel"),
+        ("convnext", "ConvNextModel"),
+        ("convnextv2", "ConvNextV2Model"),
+        ("cpmant", "CpmAntModel"),
+        ("csm", "CsmForConditionalGeneration"),
+        ("ctrl", "CTRLModel"),
+        ("cvt", "CvtModel"),
+        ("d_fine", "DFineModel"),
+        ("dab-detr", "DabDetrModel"),
+        ("dac", "DacModel"),
+        ("data2vec-audio", "Data2VecAudioModel"),
+        ("data2vec-text", "Data2VecTextModel"),
+        ("data2vec-vision", "Data2VecVisionModel"),
+        ("dbrx", "DbrxModel"),
+        ("deberta", "DebertaModel"),
+        ("deberta-v2", "DebertaV2Model"),
+        ("decision_transformer", "DecisionTransformerModel"),
+        ("deepseek_v3", "DeepseekV3Model"),
+        ("deformable_detr", "DeformableDetrModel"),
+        ("deit", "DeiTModel"),
+        ("depth_pro", "DepthProModel"),
+        ("deta", "DetaModel"),
+        ("detr", "DetrModel"),
+        ("diffllama", "DiffLlamaModel"),
+        ("dinat", "DinatModel"),
+        ("dinov2", "Dinov2Model"),
+        ("dinov2_with_registers", "Dinov2WithRegistersModel"),
+        ("distilbert", "DistilBertModel"),
+        ("donut-swin", "DonutSwinModel"),
+        ("dpr", "DPRQuestionEncoder"),
+        ("dpt", "DPTModel"),
+        ("efficientformer", "EfficientFormerModel"),
+        ("efficientnet", "EfficientNetModel"),
+        ("electra", "ElectraModel"),
+        ("emu3", "Emu3Model"),
+        ("encodec", "EncodecModel"),
+        ("ernie", "ErnieModel"),
+        ("ernie_m", "ErnieMModel"),
+        ("esm", "EsmModel"),
+        ("falcon", "FalconModel"),
+        ("falcon_mamba", "FalconMambaModel"),
+        ("fastspeech2_conformer", "FastSpeech2ConformerModel"),
+        ("flaubert", "FlaubertModel"),
+        ("flava", "FlavaModel"),
+        ("fnet", "FNetModel"),
+        ("focalnet", "FocalNetModel"),
+        ("fsmt", "FSMTModel"),
+        ("funnel", ("FunnelModel", "FunnelBaseModel")),
+        ("fuyu", "FuyuModel"),
+        ("gemma", "GemmaModel"),
+        ("gemma2", "Gemma2Model"),
+        ("gemma3", "Gemma3Model"),
+        ("gemma3_text", "Gemma3TextModel"),
+        ("git", "GitModel"),
+        ("glm", "GlmModel"),
+        ("glm4", "Glm4Model"),
+        ("glpn", "GLPNModel"),
+        ("got_ocr2", "GotOcr2Model"),
+        ("gpt-sw3", "GPT2Model"),
+        ("gpt2", "GPT2Model"),
+        ("gpt_bigcode", "GPTBigCodeModel"),
+        ("gpt_neo", "GPTNeoModel"),
+        ("gpt_neox", "GPTNeoXModel"),
+        ("gpt_neox_japanese", "GPTNeoXJapaneseModel"),
+        ("gptj", "GPTJModel"),
+        ("gptsan-japanese", "GPTSanJapaneseForConditionalGeneration"),
+        ("granite", "GraniteModel"),
+        ("granitemoe", "GraniteMoeModel"),
+        ("granitemoehybrid", "GraniteMoeHybridModel"),
+        ("granitemoeshared", "GraniteMoeSharedModel"),
+        ("graphormer", "GraphormerModel"),
+        ("grounding-dino", "GroundingDinoModel"),
+        ("groupvit", "GroupViTModel"),
+        ("helium", "HeliumModel"),
+        ("hgnet_v2", "HGNetV2Backbone"),
+        ("hiera", "HieraModel"),
+        ("hubert", "HubertModel"),
+        ("ibert", "IBertModel"),
+        ("idefics", "IdeficsModel"),
+        ("idefics2", "Idefics2Model"),
+        ("idefics3", "Idefics3Model"),
+        ("idefics3_vision", "Idefics3VisionTransformer"),
+        ("ijepa", "IJepaModel"),
+        ("imagegpt", "ImageGPTModel"),
+        ("informer", "InformerModel"),
+        ("instructblip", "InstructBlipModel"),
+        ("instructblipvideo", "InstructBlipVideoModel"),
+        ("internvl", "InternVLModel"),
+        ("internvl_vision", "InternVLVisionModel"),
+        ("jamba", "JambaModel"),
+        ("janus", "JanusModel"),
+        ("jetmoe", "JetMoeModel"),
+        ("jukebox", "JukeboxModel"),
+        ("kosmos-2", "Kosmos2Model"),
+        ("layoutlm", "LayoutLMModel"),
+        ("layoutlmv2", "LayoutLMv2Model"),
+        ("layoutlmv3", "LayoutLMv3Model"),
+        ("led", "LEDModel"),
+        ("levit", "LevitModel"),
+        ("lilt", "LiltModel"),
+        ("llama", "LlamaModel"),
+        ("llama4", "Llama4ForConditionalGeneration"),
+        ("llama4_text", "Llama4TextModel"),
+        ("llava", "LlavaModel"),
+        ("llava_next", "LlavaNextModel"),
+        ("llava_next_video", "LlavaNextVideoModel"),
+        ("llava_onevision", "LlavaOnevisionModel"),
+        ("longformer", "LongformerModel"),
+        ("longt5", "LongT5Model"),
+        ("luke", "LukeModel"),
+        ("lxmert", "LxmertModel"),
+        ("m2m_100", "M2M100Model"),
+        ("mamba", "MambaModel"),
+        ("mamba2", "Mamba2Model"),
+        ("marian", "MarianModel"),
+        ("markuplm", "MarkupLMModel"),
+        ("mask2former", "Mask2FormerModel"),
+        ("maskformer", "MaskFormerModel"),
+        ("maskformer-swin", "MaskFormerSwinModel"),
+        ("mbart", "MBartModel"),
+        ("mctct", "MCTCTModel"),
+        ("mega", "MegaModel"),
+        ("megatron-bert", "MegatronBertModel"),
+        ("mgp-str", "MgpstrForSceneTextRecognition"),
+        ("mimi", "MimiModel"),
+        ("mistral", "MistralModel"),
+        ("mistral3", "Mistral3Model"),
+        ("mixtral", "MixtralModel"),
+        ("mlcd", "MLCDVisionModel"),
+        ("mllama", "MllamaModel"),
+        ("mobilebert", "MobileBertModel"),
+        ("mobilenet_v1", "MobileNetV1Model"),
+        ("mobilenet_v2", "MobileNetV2Model"),
+        ("mobilevit", "MobileViTModel"),
+        ("mobilevitv2", "MobileViTV2Model"),
+        ("modernbert", "ModernBertModel"),
+        ("moonshine", "MoonshineModel"),
+        ("moshi", "MoshiModel"),
+        ("mpnet", "MPNetModel"),
+        ("mpt", "MptModel"),
+        ("mra", "MraModel"),
+        ("mt5", "MT5Model"),
+        ("musicgen", "MusicgenModel"),
+        ("musicgen_melody", "MusicgenMelodyModel"),
+        ("mvp", "MvpModel"),
+        ("nat", "NatModel"),
+        ("nemotron", "NemotronModel"),
+        ("nezha", "NezhaModel"),
+        ("nllb-moe", "NllbMoeModel"),
+        ("nystromformer", "NystromformerModel"),
+        ("olmo", "OlmoModel"),
+        ("olmo2", "Olmo2Model"),
+        ("olmoe", "OlmoeModel"),
+        ("omdet-turbo", "OmDetTurboForObjectDetection"),
+        ("oneformer", "OneFormerModel"),
+        ("open-llama", "OpenLlamaModel"),
+        ("openai-gpt", "OpenAIGPTModel"),
+        ("opt", "OPTModel"),
+        ("owlv2", "Owlv2Model"),
+        ("owlvit", "OwlViTModel"),
+        ("paligemma", "PaliGemmaModel"),
+        ("patchtsmixer", "PatchTSMixerModel"),
+        ("patchtst", "PatchTSTModel"),
+        ("pegasus", "PegasusModel"),
+        ("pegasus_x", "PegasusXModel"),
+        ("perceiver", "PerceiverModel"),
+        ("persimmon", "PersimmonModel"),
+        ("phi", "PhiModel"),
+        ("phi3", "Phi3Model"),
+        ("phi4_multimodal", "Phi4MultimodalModel"),
+        ("phimoe", "PhimoeModel"),
+        ("pixtral", "PixtralVisionModel"),
+        ("plbart", "PLBartModel"),
+        ("poolformer", "PoolFormerModel"),
+        ("prophetnet", "ProphetNetModel"),
+        ("pvt", "PvtModel"),
+        ("pvt_v2", "PvtV2Model"),
+        ("qdqbert", "QDQBertModel"),
+        ("qwen2", "Qwen2Model"),
+        ("qwen2_5_vl", "Qwen2_5_VLModel"),
+        ("qwen2_5_vl_text", "Qwen2_5_VLTextModel"),
+        ("qwen2_audio_encoder", "Qwen2AudioEncoder"),
+        ("qwen2_moe", "Qwen2MoeModel"),
+        ("qwen2_vl", "Qwen2VLModel"),
+        ("qwen2_vl_text", "Qwen2VLTextModel"),
+        ("qwen3", "Qwen3Model"),
+        ("qwen3_moe", "Qwen3MoeModel"),
+        ("recurrent_gemma", "RecurrentGemmaModel"),
+        ("reformer", "ReformerModel"),
+        ("regnet", "RegNetModel"),
+        ("rembert", "RemBertModel"),
+        ("resnet", "ResNetModel"),
+        ("retribert", "RetriBertModel"),
+        ("roberta", "RobertaModel"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormModel"),
+        ("roc_bert", "RoCBertModel"),
+        ("roformer", "RoFormerModel"),
+        ("rt_detr", "RTDetrModel"),
+        ("rt_detr_v2", "RTDetrV2Model"),
+        ("rwkv", "RwkvModel"),
+        ("sam", "SamModel"),
+        ("sam_hq", "SamHQModel"),
+        ("sam_hq_vision_model", "SamHQVisionModel"),
+        ("sam_vision_model", "SamVisionModel"),
+        ("seamless_m4t", "SeamlessM4TModel"),
+        ("seamless_m4t_v2", "SeamlessM4Tv2Model"),
+        ("segformer", "SegformerModel"),
+        ("seggpt", "SegGptModel"),
+        ("sew", "SEWModel"),
+        ("sew-d", "SEWDModel"),
+        ("siglip", "SiglipModel"),
+        ("siglip2", "Siglip2Model"),
+        ("siglip_vision_model", "SiglipVisionModel"),
+        ("smolvlm", "SmolVLMModel"),
+        ("smolvlm_vision", "SmolVLMVisionTransformer"),
+        ("speech_to_text", "Speech2TextModel"),
+        ("speecht5", "SpeechT5Model"),
+        ("splinter", "SplinterModel"),
+        ("squeezebert", "SqueezeBertModel"),
+        ("stablelm", "StableLmModel"),
+        ("starcoder2", "Starcoder2Model"),
+        ("superglue", "SuperGlueForKeypointMatching"),
+        ("swiftformer", "SwiftFormerModel"),
+        ("swin", "SwinModel"),
+        ("swin2sr", "Swin2SRModel"),
+        ("swinv2", "Swinv2Model"),
+        ("switch_transformers", "SwitchTransformersModel"),
+        ("t5", "T5Model"),
+        ("table-transformer", "TableTransformerModel"),
+        ("tapas", "TapasModel"),
+        ("textnet", "TextNetModel"),
+        ("time_series_transformer", "TimeSeriesTransformerModel"),
+        ("timesfm", "TimesFmModel"),
+        ("timesformer", "TimesformerModel"),
+        ("timm_backbone", "TimmBackbone"),
+        ("timm_wrapper", "TimmWrapperModel"),
+        ("trajectory_transformer", "TrajectoryTransformerModel"),
+        ("transfo-xl", "TransfoXLModel"),
+        ("tvlt", "TvltModel"),
+        ("tvp", "TvpModel"),
+        ("udop", "UdopModel"),
+        ("umt5", "UMT5Model"),
+        ("unispeech", "UniSpeechModel"),
+        ("unispeech-sat", "UniSpeechSatModel"),
+        ("univnet", "UnivNetModel"),
+        ("van", "VanModel"),
+        ("video_llava", "VideoLlavaModel"),
+        ("videomae", "VideoMAEModel"),
+        ("vilt", "ViltModel"),
+        ("vipllava", "VipLlavaModel"),
+        ("vision-text-dual-encoder", "VisionTextDualEncoderModel"),
+        ("visual_bert", "VisualBertModel"),
+        ("vit", "ViTModel"),
+        ("vit_hybrid", "ViTHybridModel"),
+        ("vit_mae", "ViTMAEModel"),
+        ("vit_msn", "ViTMSNModel"),
+        ("vitdet", "VitDetModel"),
+        ("vits", "VitsModel"),
+        ("vivit", "VivitModel"),
+        ("wav2vec2", "Wav2Vec2Model"),
+        ("wav2vec2-bert", "Wav2Vec2BertModel"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerModel"),
+        ("wavlm", "WavLMModel"),
+        ("whisper", "WhisperModel"),
+        ("xclip", "XCLIPModel"),
+        ("xglm", "XGLMModel"),
+        ("xlm", "XLMModel"),
+        ("xlm-prophetnet", "XLMProphetNetModel"),
+        ("xlm-roberta", "XLMRobertaModel"),
+        ("xlm-roberta-xl", "XLMRobertaXLModel"),
+        ("xlnet", "XLNetModel"),
+        ("xmod", "XmodModel"),
+        ("yolos", "YolosModel"),
+        ("yoso", "YosoModel"),
+        ("zamba", "ZambaModel"),
+        ("zamba2", "Zamba2Model"),
     ]
 )
 
-MODEL_FOR_PRETRAINING_MAPPING = OrderedDict(
+MODEL_FOR_PRETRAINING_MAPPING_NAMES = OrderedDict(
     [
         # Model for pre-training mapping
-        (LayoutLMConfig, LayoutLMForMaskedLM),
-        (RetriBertConfig, RetriBertModel),
-        (T5Config, T5ForConditionalGeneration),
-        (DistilBertConfig, DistilBertForMaskedLM),
-        (AlbertConfig, AlbertForPreTraining),
-        (CamembertConfig, CamembertForMaskedLM),
-        (XLMRobertaConfig, XLMRobertaForMaskedLM),
-        (BartConfig, BartForConditionalGeneration),
-        (FSMTConfig, FSMTForConditionalGeneration),
-        (LongformerConfig, LongformerForMaskedLM),
-        (RobertaConfig, RobertaForMaskedLM),
-        (SqueezeBertConfig, SqueezeBertForMaskedLM),
-        (BertConfig, BertForPreTraining),
-        (OpenAIGPTConfig, OpenAIGPTLMHeadModel),
-        (GPT2Config, GPT2LMHeadModel),
-        (MobileBertConfig, MobileBertForPreTraining),
-        (TransfoXLConfig, TransfoXLLMHeadModel),
-        (XLNetConfig, XLNetLMHeadModel),
-        (FlaubertConfig, FlaubertWithLMHeadModel),
-        (XLMConfig, XLMWithLMHeadModel),
-        (CTRLConfig, CTRLLMHeadModel),
-        (ElectraConfig, ElectraForPreTraining),
-        (LxmertConfig, LxmertForPreTraining),
-        (FunnelConfig, FunnelForPreTraining),
-        (MPNetConfig, MPNetForMaskedLM),
-        (TapasConfig, TapasForMaskedLM),
-        (IBertConfig, IBertForMaskedLM),
-        (DebertaConfig, DebertaForMaskedLM),
-        (DebertaV2Config, DebertaV2ForMaskedLM),
+        ("albert", "AlbertForPreTraining"),
+        ("bart", "BartForConditionalGeneration"),
+        ("bert", "BertForPreTraining"),
+        ("big_bird", "BigBirdForPreTraining"),
+        ("bloom", "BloomForCausalLM"),
+        ("camembert", "CamembertForMaskedLM"),
+        ("colpali", "ColPaliForRetrieval"),
+        ("ctrl", "CTRLLMHeadModel"),
+        ("data2vec-text", "Data2VecTextForMaskedLM"),
+        ("deberta", "DebertaForMaskedLM"),
+        ("deberta-v2", "DebertaV2ForMaskedLM"),
+        ("distilbert", "DistilBertForMaskedLM"),
+        ("electra", "ElectraForPreTraining"),
+        ("ernie", "ErnieForPreTraining"),
+        ("falcon_mamba", "FalconMambaForCausalLM"),
+        ("flaubert", "FlaubertWithLMHeadModel"),
+        ("flava", "FlavaForPreTraining"),
+        ("fnet", "FNetForPreTraining"),
+        ("fsmt", "FSMTForConditionalGeneration"),
+        ("funnel", "FunnelForPreTraining"),
+        ("gemma3", "Gemma3ForConditionalGeneration"),
+        ("gpt-sw3", "GPT2LMHeadModel"),
+        ("gpt2", "GPT2LMHeadModel"),
+        ("gpt_bigcode", "GPTBigCodeForCausalLM"),
+        ("gptsan-japanese", "GPTSanJapaneseForConditionalGeneration"),
+        ("hiera", "HieraForPreTraining"),
+        ("ibert", "IBertForMaskedLM"),
+        ("idefics", "IdeficsForVisionText2Text"),
+        ("idefics2", "Idefics2ForConditionalGeneration"),
+        ("idefics3", "Idefics3ForConditionalGeneration"),
+        ("janus", "JanusForConditionalGeneration"),
+        ("layoutlm", "LayoutLMForMaskedLM"),
+        ("llava", "LlavaForConditionalGeneration"),
+        ("llava_next", "LlavaNextForConditionalGeneration"),
+        ("llava_next_video", "LlavaNextVideoForConditionalGeneration"),
+        ("llava_onevision", "LlavaOnevisionForConditionalGeneration"),
+        ("longformer", "LongformerForMaskedLM"),
+        ("luke", "LukeForMaskedLM"),
+        ("lxmert", "LxmertForPreTraining"),
+        ("mamba", "MambaForCausalLM"),
+        ("mamba2", "Mamba2ForCausalLM"),
+        ("mega", "MegaForMaskedLM"),
+        ("megatron-bert", "MegatronBertForPreTraining"),
+        ("mistral3", "Mistral3ForConditionalGeneration"),
+        ("mllama", "MllamaForConditionalGeneration"),
+        ("mobilebert", "MobileBertForPreTraining"),
+        ("mpnet", "MPNetForMaskedLM"),
+        ("mpt", "MptForCausalLM"),
+        ("mra", "MraForMaskedLM"),
+        ("mvp", "MvpForConditionalGeneration"),
+        ("nezha", "NezhaForPreTraining"),
+        ("nllb-moe", "NllbMoeForConditionalGeneration"),
+        ("openai-gpt", "OpenAIGPTLMHeadModel"),
+        ("paligemma", "PaliGemmaForConditionalGeneration"),
+        ("qwen2_audio", "Qwen2AudioForConditionalGeneration"),
+        ("retribert", "RetriBertModel"),
+        ("roberta", "RobertaForMaskedLM"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForMaskedLM"),
+        ("roc_bert", "RoCBertForPreTraining"),
+        ("rwkv", "RwkvForCausalLM"),
+        ("splinter", "SplinterForPreTraining"),
+        ("squeezebert", "SqueezeBertForMaskedLM"),
+        ("switch_transformers", "SwitchTransformersForConditionalGeneration"),
+        ("t5", "T5ForConditionalGeneration"),
+        ("tapas", "TapasForMaskedLM"),
+        ("transfo-xl", "TransfoXLLMHeadModel"),
+        ("tvlt", "TvltForPreTraining"),
+        ("unispeech", "UniSpeechForPreTraining"),
+        ("unispeech-sat", "UniSpeechSatForPreTraining"),
+        ("video_llava", "VideoLlavaForConditionalGeneration"),
+        ("videomae", "VideoMAEForPreTraining"),
+        ("vipllava", "VipLlavaForConditionalGeneration"),
+        ("visual_bert", "VisualBertForPreTraining"),
+        ("vit_mae", "ViTMAEForPreTraining"),
+        ("wav2vec2", "Wav2Vec2ForPreTraining"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerForPreTraining"),
+        ("xlm", "XLMWithLMHeadModel"),
+        ("xlm-roberta", "XLMRobertaForMaskedLM"),
+        ("xlm-roberta-xl", "XLMRobertaXLForMaskedLM"),
+        ("xlnet", "XLNetLMHeadModel"),
+        ("xmod", "XmodForMaskedLM"),
     ]
 )
 
-MODEL_WITH_LM_HEAD_MAPPING = OrderedDict(
+MODEL_WITH_LM_HEAD_MAPPING_NAMES = OrderedDict(
     [
         # Model with LM heads mapping
-        (Speech2TextConfig, Speech2TextForConditionalGeneration),
-        (Wav2Vec2Config, Wav2Vec2ForMaskedLM),
-        (M2M100Config, M2M100ForConditionalGeneration),
-        (ConvBertConfig, ConvBertForMaskedLM),
-        (LEDConfig, LEDForConditionalGeneration),
-        (BlenderbotSmallConfig, BlenderbotSmallForConditionalGeneration),
-        (LayoutLMConfig, LayoutLMForMaskedLM),
-        (T5Config, T5ForConditionalGeneration),
-        (DistilBertConfig, DistilBertForMaskedLM),
-        (AlbertConfig, AlbertForMaskedLM),
-        (CamembertConfig, CamembertForMaskedLM),
-        (XLMRobertaConfig, XLMRobertaForMaskedLM),
-        (MarianConfig, MarianMTModel),
-        (FSMTConfig, FSMTForConditionalGeneration),
-        (BartConfig, BartForConditionalGeneration),
-        (LongformerConfig, LongformerForMaskedLM),
-        (RobertaConfig, RobertaForMaskedLM),
-        (SqueezeBertConfig, SqueezeBertForMaskedLM),
-        (BertConfig, BertForMaskedLM),
-        (OpenAIGPTConfig, OpenAIGPTLMHeadModel),
-        (GPT2Config, GPT2LMHeadModel),
-        (MobileBertConfig, MobileBertForMaskedLM),
-        (TransfoXLConfig, TransfoXLLMHeadModel),
-        (XLNetConfig, XLNetLMHeadModel),
-        (FlaubertConfig, FlaubertWithLMHeadModel),
-        (XLMConfig, XLMWithLMHeadModel),
-        (CTRLConfig, CTRLLMHeadModel),
-        (ElectraConfig, ElectraForMaskedLM),
-        (EncoderDecoderConfig, EncoderDecoderModel),
-        (ReformerConfig, ReformerModelWithLMHead),
-        (FunnelConfig, FunnelForMaskedLM),
-        (MPNetConfig, MPNetForMaskedLM),
-        (TapasConfig, TapasForMaskedLM),
-        (DebertaConfig, DebertaForMaskedLM),
-        (DebertaV2Config, DebertaV2ForMaskedLM),
-        (IBertConfig, IBertForMaskedLM),
+        ("albert", "AlbertForMaskedLM"),
+        ("bart", "BartForConditionalGeneration"),
+        ("bert", "BertForMaskedLM"),
+        ("big_bird", "BigBirdForMaskedLM"),
+        ("bigbird_pegasus", "BigBirdPegasusForConditionalGeneration"),
+        ("blenderbot-small", "BlenderbotSmallForConditionalGeneration"),
+        ("bloom", "BloomForCausalLM"),
+        ("camembert", "CamembertForMaskedLM"),
+        ("codegen", "CodeGenForCausalLM"),
+        ("convbert", "ConvBertForMaskedLM"),
+        ("cpmant", "CpmAntForCausalLM"),
+        ("ctrl", "CTRLLMHeadModel"),
+        ("data2vec-text", "Data2VecTextForMaskedLM"),
+        ("deberta", "DebertaForMaskedLM"),
+        ("deberta-v2", "DebertaV2ForMaskedLM"),
+        ("distilbert", "DistilBertForMaskedLM"),
+        ("electra", "ElectraForMaskedLM"),
+        ("encoder-decoder", "EncoderDecoderModel"),
+        ("ernie", "ErnieForMaskedLM"),
+        ("esm", "EsmForMaskedLM"),
+        ("falcon_mamba", "FalconMambaForCausalLM"),
+        ("flaubert", "FlaubertWithLMHeadModel"),
+        ("fnet", "FNetForMaskedLM"),
+        ("fsmt", "FSMTForConditionalGeneration"),
+        ("funnel", "FunnelForMaskedLM"),
+        ("git", "GitForCausalLM"),
+        ("gpt-sw3", "GPT2LMHeadModel"),
+        ("gpt2", "GPT2LMHeadModel"),
+        ("gpt_bigcode", "GPTBigCodeForCausalLM"),
+        ("gpt_neo", "GPTNeoForCausalLM"),
+        ("gpt_neox", "GPTNeoXForCausalLM"),
+        ("gpt_neox_japanese", "GPTNeoXJapaneseForCausalLM"),
+        ("gptj", "GPTJForCausalLM"),
+        ("gptsan-japanese", "GPTSanJapaneseForConditionalGeneration"),
+        ("ibert", "IBertForMaskedLM"),
+        ("layoutlm", "LayoutLMForMaskedLM"),
+        ("led", "LEDForConditionalGeneration"),
+        ("longformer", "LongformerForMaskedLM"),
+        ("longt5", "LongT5ForConditionalGeneration"),
+        ("luke", "LukeForMaskedLM"),
+        ("m2m_100", "M2M100ForConditionalGeneration"),
+        ("mamba", "MambaForCausalLM"),
+        ("mamba2", "Mamba2ForCausalLM"),
+        ("marian", "MarianMTModel"),
+        ("mega", "MegaForMaskedLM"),
+        ("megatron-bert", "MegatronBertForCausalLM"),
+        ("mobilebert", "MobileBertForMaskedLM"),
+        ("moonshine", "MoonshineForConditionalGeneration"),
+        ("mpnet", "MPNetForMaskedLM"),
+        ("mpt", "MptForCausalLM"),
+        ("mra", "MraForMaskedLM"),
+        ("mvp", "MvpForConditionalGeneration"),
+        ("nezha", "NezhaForMaskedLM"),
+        ("nllb-moe", "NllbMoeForConditionalGeneration"),
+        ("nystromformer", "NystromformerForMaskedLM"),
+        ("openai-gpt", "OpenAIGPTLMHeadModel"),
+        ("pegasus_x", "PegasusXForConditionalGeneration"),
+        ("plbart", "PLBartForConditionalGeneration"),
+        ("pop2piano", "Pop2PianoForConditionalGeneration"),
+        ("qdqbert", "QDQBertForMaskedLM"),
+        ("reformer", "ReformerModelWithLMHead"),
+        ("rembert", "RemBertForMaskedLM"),
+        ("roberta", "RobertaForMaskedLM"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForMaskedLM"),
+        ("roc_bert", "RoCBertForMaskedLM"),
+        ("roformer", "RoFormerForMaskedLM"),
+        ("rwkv", "RwkvForCausalLM"),
+        ("speech_to_text", "Speech2TextForConditionalGeneration"),
+        ("squeezebert", "SqueezeBertForMaskedLM"),
+        ("switch_transformers", "SwitchTransformersForConditionalGeneration"),
+        ("t5", "T5ForConditionalGeneration"),
+        ("tapas", "TapasForMaskedLM"),
+        ("transfo-xl", "TransfoXLLMHeadModel"),
+        ("wav2vec2", "Wav2Vec2ForMaskedLM"),
+        ("whisper", "WhisperForConditionalGeneration"),
+        ("xlm", "XLMWithLMHeadModel"),
+        ("xlm-roberta", "XLMRobertaForMaskedLM"),
+        ("xlm-roberta-xl", "XLMRobertaXLForMaskedLM"),
+        ("xlnet", "XLNetLMHeadModel"),
+        ("xmod", "XmodForMaskedLM"),
+        ("yoso", "YosoForMaskedLM"),
     ]
 )
 
-MODEL_FOR_CAUSAL_LM_MAPPING = OrderedDict(
+MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
     [
         # Model for Causal LM mapping
-        (CamembertConfig, CamembertForCausalLM),
-        (XLMRobertaConfig, XLMRobertaForCausalLM),
-        (RobertaConfig, RobertaForCausalLM),
-        (BertConfig, BertLMHeadModel),
-        (OpenAIGPTConfig, OpenAIGPTLMHeadModel),
-        (GPT2Config, GPT2LMHeadModel),
-        (TransfoXLConfig, TransfoXLLMHeadModel),
-        (XLNetConfig, XLNetLMHeadModel),
-        (
-            XLMConfig,
-            XLMWithLMHeadModel,
-        ),  # XLM can be MLM and CLM => model should be split similar to BERT; leave here for now
-        (CTRLConfig, CTRLLMHeadModel),
-        (ReformerConfig, ReformerModelWithLMHead),
-        (BertGenerationConfig, BertGenerationDecoder),
-        (XLMProphetNetConfig, XLMProphetNetForCausalLM),
-        (ProphetNetConfig, ProphetNetForCausalLM),
-        (BartConfig, BartForCausalLM),
-        (MBartConfig, MBartForCausalLM),
-        (PegasusConfig, PegasusForCausalLM),
-        (MarianConfig, MarianForCausalLM),
-        (BlenderbotConfig, BlenderbotForCausalLM),
-        (BlenderbotSmallConfig, BlenderbotSmallForCausalLM),
+        ("aria_text", "AriaTextForCausalLM"),
+        ("bamba", "BambaForCausalLM"),
+        ("bart", "BartForCausalLM"),
+        ("bert", "BertLMHeadModel"),
+        ("bert-generation", "BertGenerationDecoder"),
+        ("big_bird", "BigBirdForCausalLM"),
+        ("bigbird_pegasus", "BigBirdPegasusForCausalLM"),
+        ("biogpt", "BioGptForCausalLM"),
+        ("bitnet", "BitNetForCausalLM"),
+        ("blenderbot", "BlenderbotForCausalLM"),
+        ("blenderbot-small", "BlenderbotSmallForCausalLM"),
+        ("bloom", "BloomForCausalLM"),
+        ("camembert", "CamembertForCausalLM"),
+        ("code_llama", "LlamaForCausalLM"),
+        ("codegen", "CodeGenForCausalLM"),
+        ("cohere", "CohereForCausalLM"),
+        ("cohere2", "Cohere2ForCausalLM"),
+        ("cpmant", "CpmAntForCausalLM"),
+        ("ctrl", "CTRLLMHeadModel"),
+        ("data2vec-text", "Data2VecTextForCausalLM"),
+        ("dbrx", "DbrxForCausalLM"),
+        ("deepseek_v3", "DeepseekV3ForCausalLM"),
+        ("diffllama", "DiffLlamaForCausalLM"),
+        ("electra", "ElectraForCausalLM"),
+        ("emu3", "Emu3ForCausalLM"),
+        ("ernie", "ErnieForCausalLM"),
+        ("falcon", "FalconForCausalLM"),
+        ("falcon_mamba", "FalconMambaForCausalLM"),
+        ("fuyu", "FuyuForCausalLM"),
+        ("gemma", "GemmaForCausalLM"),
+        ("gemma2", "Gemma2ForCausalLM"),
+        ("gemma3", "Gemma3ForConditionalGeneration"),
+        ("gemma3_text", "Gemma3ForCausalLM"),
+        ("git", "GitForCausalLM"),
+        ("glm", "GlmForCausalLM"),
+        ("glm4", "Glm4ForCausalLM"),
+        ("got_ocr2", "GotOcr2ForConditionalGeneration"),
+        ("gpt-sw3", "GPT2LMHeadModel"),
+        ("gpt2", "GPT2LMHeadModel"),
+        ("gpt_bigcode", "GPTBigCodeForCausalLM"),
+        ("gpt_neo", "GPTNeoForCausalLM"),
+        ("gpt_neox", "GPTNeoXForCausalLM"),
+        ("gpt_neox_japanese", "GPTNeoXJapaneseForCausalLM"),
+        ("gptj", "GPTJForCausalLM"),
+        ("granite", "GraniteForCausalLM"),
+        ("granitemoe", "GraniteMoeForCausalLM"),
+        ("granitemoehybrid", "GraniteMoeHybridForCausalLM"),
+        ("granitemoeshared", "GraniteMoeSharedForCausalLM"),
+        ("helium", "HeliumForCausalLM"),
+        ("jamba", "JambaForCausalLM"),
+        ("jetmoe", "JetMoeForCausalLM"),
+        ("llama", "LlamaForCausalLM"),
+        ("llama4", "Llama4ForCausalLM"),
+        ("llama4_text", "Llama4ForCausalLM"),
+        ("mamba", "MambaForCausalLM"),
+        ("mamba2", "Mamba2ForCausalLM"),
+        ("marian", "MarianForCausalLM"),
+        ("mbart", "MBartForCausalLM"),
+        ("mega", "MegaForCausalLM"),
+        ("megatron-bert", "MegatronBertForCausalLM"),
+        ("mistral", "MistralForCausalLM"),
+        ("mixtral", "MixtralForCausalLM"),
+        ("mllama", "MllamaForCausalLM"),
+        ("moshi", "MoshiForCausalLM"),
+        ("mpt", "MptForCausalLM"),
+        ("musicgen", "MusicgenForCausalLM"),
+        ("musicgen_melody", "MusicgenMelodyForCausalLM"),
+        ("mvp", "MvpForCausalLM"),
+        ("nemotron", "NemotronForCausalLM"),
+        ("olmo", "OlmoForCausalLM"),
+        ("olmo2", "Olmo2ForCausalLM"),
+        ("olmoe", "OlmoeForCausalLM"),
+        ("open-llama", "OpenLlamaForCausalLM"),
+        ("openai-gpt", "OpenAIGPTLMHeadModel"),
+        ("opt", "OPTForCausalLM"),
+        ("pegasus", "PegasusForCausalLM"),
+        ("persimmon", "PersimmonForCausalLM"),
+        ("phi", "PhiForCausalLM"),
+        ("phi3", "Phi3ForCausalLM"),
+        ("phi4_multimodal", "Phi4MultimodalForCausalLM"),
+        ("phimoe", "PhimoeForCausalLM"),
+        ("plbart", "PLBartForCausalLM"),
+        ("prophetnet", "ProphetNetForCausalLM"),
+        ("qdqbert", "QDQBertLMHeadModel"),
+        ("qwen2", "Qwen2ForCausalLM"),
+        ("qwen2_moe", "Qwen2MoeForCausalLM"),
+        ("qwen3", "Qwen3ForCausalLM"),
+        ("qwen3_moe", "Qwen3MoeForCausalLM"),
+        ("recurrent_gemma", "RecurrentGemmaForCausalLM"),
+        ("reformer", "ReformerModelWithLMHead"),
+        ("rembert", "RemBertForCausalLM"),
+        ("roberta", "RobertaForCausalLM"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForCausalLM"),
+        ("roc_bert", "RoCBertForCausalLM"),
+        ("roformer", "RoFormerForCausalLM"),
+        ("rwkv", "RwkvForCausalLM"),
+        ("speech_to_text_2", "Speech2Text2ForCausalLM"),
+        ("stablelm", "StableLmForCausalLM"),
+        ("starcoder2", "Starcoder2ForCausalLM"),
+        ("transfo-xl", "TransfoXLLMHeadModel"),
+        ("trocr", "TrOCRForCausalLM"),
+        ("whisper", "WhisperForCausalLM"),
+        ("xglm", "XGLMForCausalLM"),
+        ("xlm", "XLMWithLMHeadModel"),
+        ("xlm-prophetnet", "XLMProphetNetForCausalLM"),
+        ("xlm-roberta", "XLMRobertaForCausalLM"),
+        ("xlm-roberta-xl", "XLMRobertaXLForCausalLM"),
+        ("xlnet", "XLNetLMHeadModel"),
+        ("xmod", "XmodForCausalLM"),
+        ("zamba", "ZambaForCausalLM"),
+        ("zamba2", "Zamba2ForCausalLM"),
     ]
 )
 
-MODEL_FOR_MASKED_LM_MAPPING = OrderedDict(
+MODEL_FOR_IMAGE_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Image mapping
+        ("beit", "BeitModel"),
+        ("bit", "BitModel"),
+        ("conditional_detr", "ConditionalDetrModel"),
+        ("convnext", "ConvNextModel"),
+        ("convnextv2", "ConvNextV2Model"),
+        ("dab-detr", "DabDetrModel"),
+        ("data2vec-vision", "Data2VecVisionModel"),
+        ("deformable_detr", "DeformableDetrModel"),
+        ("deit", "DeiTModel"),
+        ("depth_pro", "DepthProModel"),
+        ("deta", "DetaModel"),
+        ("detr", "DetrModel"),
+        ("dinat", "DinatModel"),
+        ("dinov2", "Dinov2Model"),
+        ("dinov2_with_registers", "Dinov2WithRegistersModel"),
+        ("dpt", "DPTModel"),
+        ("efficientformer", "EfficientFormerModel"),
+        ("efficientnet", "EfficientNetModel"),
+        ("focalnet", "FocalNetModel"),
+        ("glpn", "GLPNModel"),
+        ("hiera", "HieraModel"),
+        ("ijepa", "IJepaModel"),
+        ("imagegpt", "ImageGPTModel"),
+        ("levit", "LevitModel"),
+        ("llama4", "Llama4VisionModel"),
+        ("mlcd", "MLCDVisionModel"),
+        ("mllama", "MllamaVisionModel"),
+        ("mobilenet_v1", "MobileNetV1Model"),
+        ("mobilenet_v2", "MobileNetV2Model"),
+        ("mobilevit", "MobileViTModel"),
+        ("mobilevitv2", "MobileViTV2Model"),
+        ("nat", "NatModel"),
+        ("poolformer", "PoolFormerModel"),
+        ("pvt", "PvtModel"),
+        ("regnet", "RegNetModel"),
+        ("resnet", "ResNetModel"),
+        ("segformer", "SegformerModel"),
+        ("siglip_vision_model", "SiglipVisionModel"),
+        ("swiftformer", "SwiftFormerModel"),
+        ("swin", "SwinModel"),
+        ("swin2sr", "Swin2SRModel"),
+        ("swinv2", "Swinv2Model"),
+        ("table-transformer", "TableTransformerModel"),
+        ("timesformer", "TimesformerModel"),
+        ("timm_backbone", "TimmBackbone"),
+        ("timm_wrapper", "TimmWrapperModel"),
+        ("van", "VanModel"),
+        ("videomae", "VideoMAEModel"),
+        ("vit", "ViTModel"),
+        ("vit_hybrid", "ViTHybridModel"),
+        ("vit_mae", "ViTMAEModel"),
+        ("vit_msn", "ViTMSNModel"),
+        ("vitdet", "VitDetModel"),
+        ("vivit", "VivitModel"),
+        ("yolos", "YolosModel"),
+    ]
+)
+
+MODEL_FOR_MASKED_IMAGE_MODELING_MAPPING_NAMES = OrderedDict(
+    [
+        ("deit", "DeiTForMaskedImageModeling"),
+        ("focalnet", "FocalNetForMaskedImageModeling"),
+        ("swin", "SwinForMaskedImageModeling"),
+        ("swinv2", "Swinv2ForMaskedImageModeling"),
+        ("vit", "ViTForMaskedImageModeling"),
+    ]
+)
+
+
+MODEL_FOR_CAUSAL_IMAGE_MODELING_MAPPING_NAMES = OrderedDict(
+    # Model for Causal Image Modeling mapping
+    [
+        ("imagegpt", "ImageGPTForCausalImageModeling"),
+    ]
+)
+
+MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Image Classification mapping
+        ("beit", "BeitForImageClassification"),
+        ("bit", "BitForImageClassification"),
+        ("clip", "CLIPForImageClassification"),
+        ("convnext", "ConvNextForImageClassification"),
+        ("convnextv2", "ConvNextV2ForImageClassification"),
+        ("cvt", "CvtForImageClassification"),
+        ("data2vec-vision", "Data2VecVisionForImageClassification"),
+        (
+            "deit",
+            ("DeiTForImageClassification", "DeiTForImageClassificationWithTeacher"),
+        ),
+        ("dinat", "DinatForImageClassification"),
+        ("dinov2", "Dinov2ForImageClassification"),
+        ("dinov2_with_registers", "Dinov2WithRegistersForImageClassification"),
+        ("donut-swin", "DonutSwinForImageClassification"),
+        (
+            "efficientformer",
+            (
+                "EfficientFormerForImageClassification",
+                "EfficientFormerForImageClassificationWithTeacher",
+            ),
+        ),
+        ("efficientnet", "EfficientNetForImageClassification"),
+        ("focalnet", "FocalNetForImageClassification"),
+        ("hgnet_v2", "HGNetV2ForImageClassification"),
+        ("hiera", "HieraForImageClassification"),
+        ("ijepa", "IJepaForImageClassification"),
+        ("imagegpt", "ImageGPTForImageClassification"),
+        (
+            "levit",
+            ("LevitForImageClassification", "LevitForImageClassificationWithTeacher"),
+        ),
+        ("mobilenet_v1", "MobileNetV1ForImageClassification"),
+        ("mobilenet_v2", "MobileNetV2ForImageClassification"),
+        ("mobilevit", "MobileViTForImageClassification"),
+        ("mobilevitv2", "MobileViTV2ForImageClassification"),
+        ("nat", "NatForImageClassification"),
+        (
+            "perceiver",
+            (
+                "PerceiverForImageClassificationLearned",
+                "PerceiverForImageClassificationFourier",
+                "PerceiverForImageClassificationConvProcessing",
+            ),
+        ),
+        ("poolformer", "PoolFormerForImageClassification"),
+        ("pvt", "PvtForImageClassification"),
+        ("pvt_v2", "PvtV2ForImageClassification"),
+        ("regnet", "RegNetForImageClassification"),
+        ("resnet", "ResNetForImageClassification"),
+        ("segformer", "SegformerForImageClassification"),
+        ("shieldgemma2", "ShieldGemma2ForImageClassification"),
+        ("siglip", "SiglipForImageClassification"),
+        ("siglip2", "Siglip2ForImageClassification"),
+        ("swiftformer", "SwiftFormerForImageClassification"),
+        ("swin", "SwinForImageClassification"),
+        ("swinv2", "Swinv2ForImageClassification"),
+        ("textnet", "TextNetForImageClassification"),
+        ("timm_wrapper", "TimmWrapperForImageClassification"),
+        ("van", "VanForImageClassification"),
+        ("vit", "ViTForImageClassification"),
+        ("vit_hybrid", "ViTHybridForImageClassification"),
+        ("vit_msn", "ViTMSNForImageClassification"),
+    ]
+)
+
+MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Do not add new models here, this class will be deprecated in the future.
+        # Model for Image Segmentation mapping
+        ("detr", "DetrForSegmentation"),
+    ]
+)
+
+MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Semantic Segmentation mapping
+        ("beit", "BeitForSemanticSegmentation"),
+        ("data2vec-vision", "Data2VecVisionForSemanticSegmentation"),
+        ("dpt", "DPTForSemanticSegmentation"),
+        ("mobilenet_v2", "MobileNetV2ForSemanticSegmentation"),
+        ("mobilevit", "MobileViTForSemanticSegmentation"),
+        ("mobilevitv2", "MobileViTV2ForSemanticSegmentation"),
+        ("segformer", "SegformerForSemanticSegmentation"),
+        ("upernet", "UperNetForSemanticSegmentation"),
+    ]
+)
+
+MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Instance Segmentation mapping
+        # MaskFormerForInstanceSegmentation can be removed from this mapping in v5
+        ("maskformer", "MaskFormerForInstanceSegmentation"),
+    ]
+)
+
+MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Universal Segmentation mapping
+        ("detr", "DetrForSegmentation"),
+        ("mask2former", "Mask2FormerForUniversalSegmentation"),
+        ("maskformer", "MaskFormerForInstanceSegmentation"),
+        ("oneformer", "OneFormerForUniversalSegmentation"),
+    ]
+)
+
+MODEL_FOR_VIDEO_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        ("timesformer", "TimesformerForVideoClassification"),
+        ("videomae", "VideoMAEForVideoClassification"),
+        ("vivit", "VivitForVideoClassification"),
+    ]
+)
+
+MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES = OrderedDict(
+    [
+        ("blip", "BlipForConditionalGeneration"),
+        ("blip-2", "Blip2ForConditionalGeneration"),
+        ("chameleon", "ChameleonForConditionalGeneration"),
+        ("git", "GitForCausalLM"),
+        ("idefics2", "Idefics2ForConditionalGeneration"),
+        ("idefics3", "Idefics3ForConditionalGeneration"),
+        ("instructblip", "InstructBlipForConditionalGeneration"),
+        ("instructblipvideo", "InstructBlipVideoForConditionalGeneration"),
+        ("kosmos-2", "Kosmos2ForConditionalGeneration"),
+        ("llava", "LlavaForConditionalGeneration"),
+        ("llava_next", "LlavaNextForConditionalGeneration"),
+        ("llava_next_video", "LlavaNextVideoForConditionalGeneration"),
+        ("llava_onevision", "LlavaOnevisionForConditionalGeneration"),
+        ("mistral3", "Mistral3ForConditionalGeneration"),
+        ("mllama", "MllamaForConditionalGeneration"),
+        ("paligemma", "PaliGemmaForConditionalGeneration"),
+        ("pix2struct", "Pix2StructForConditionalGeneration"),
+        ("qwen2_5_vl", "Qwen2_5_VLForConditionalGeneration"),
+        ("qwen2_vl", "Qwen2VLForConditionalGeneration"),
+        ("video_llava", "VideoLlavaForConditionalGeneration"),
+        ("vipllava", "VipLlavaForConditionalGeneration"),
+        ("vision-encoder-decoder", "VisionEncoderDecoderModel"),
+    ]
+)
+
+MODEL_FOR_RETRIEVAL_MAPPING_NAMES = OrderedDict(
+    [
+        ("colpali", "ColPaliForRetrieval"),
+    ]
+)
+
+MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = OrderedDict(
+    [
+        ("aria", "AriaForConditionalGeneration"),
+        ("aya_vision", "AyaVisionForConditionalGeneration"),
+        ("blip", "BlipForConditionalGeneration"),
+        ("blip-2", "Blip2ForConditionalGeneration"),
+        ("chameleon", "ChameleonForConditionalGeneration"),
+        ("emu3", "Emu3ForConditionalGeneration"),
+        ("fuyu", "FuyuForCausalLM"),
+        ("gemma3", "Gemma3ForConditionalGeneration"),
+        ("git", "GitForCausalLM"),
+        ("got_ocr2", "GotOcr2ForConditionalGeneration"),
+        ("idefics", "IdeficsForVisionText2Text"),
+        ("idefics2", "Idefics2ForConditionalGeneration"),
+        ("idefics3", "Idefics3ForConditionalGeneration"),
+        ("instructblip", "InstructBlipForConditionalGeneration"),
+        ("internvl", "InternVLForConditionalGeneration"),
+        ("janus", "JanusForConditionalGeneration"),
+        ("kosmos-2", "Kosmos2ForConditionalGeneration"),
+        ("llama4", "Llama4ForConditionalGeneration"),
+        ("llava", "LlavaForConditionalGeneration"),
+        ("llava_next", "LlavaNextForConditionalGeneration"),
+        ("llava_next_video", "LlavaNextVideoForConditionalGeneration"),
+        ("llava_onevision", "LlavaOnevisionForConditionalGeneration"),
+        ("mistral3", "Mistral3ForConditionalGeneration"),
+        ("mllama", "MllamaForConditionalGeneration"),
+        ("paligemma", "PaliGemmaForConditionalGeneration"),
+        ("pix2struct", "Pix2StructForConditionalGeneration"),
+        ("pixtral", "LlavaForConditionalGeneration"),
+        ("qwen2_5_vl", "Qwen2_5_VLForConditionalGeneration"),
+        ("qwen2_vl", "Qwen2VLForConditionalGeneration"),
+        ("shieldgemma2", "Gemma3ForConditionalGeneration"),
+        ("smolvlm", "SmolVLMForConditionalGeneration"),
+        ("udop", "UdopForConditionalGeneration"),
+        ("vipllava", "VipLlavaForConditionalGeneration"),
+        ("vision-encoder-decoder", "VisionEncoderDecoderModel"),
+    ]
+)
+
+MODEL_FOR_MASKED_LM_MAPPING_NAMES = OrderedDict(
     [
         # Model for Masked LM mapping
-        (Wav2Vec2Config, Wav2Vec2ForMaskedLM),
-        (ConvBertConfig, ConvBertForMaskedLM),
-        (LayoutLMConfig, LayoutLMForMaskedLM),
-        (DistilBertConfig, DistilBertForMaskedLM),
-        (AlbertConfig, AlbertForMaskedLM),
-        (BartConfig, BartForConditionalGeneration),
-        (MBartConfig, MBartForConditionalGeneration),
-        (CamembertConfig, CamembertForMaskedLM),
-        (XLMRobertaConfig, XLMRobertaForMaskedLM),
-        (LongformerConfig, LongformerForMaskedLM),
-        (RobertaConfig, RobertaForMaskedLM),
-        (SqueezeBertConfig, SqueezeBertForMaskedLM),
-        (BertConfig, BertForMaskedLM),
-        (MobileBertConfig, MobileBertForMaskedLM),
-        (FlaubertConfig, FlaubertWithLMHeadModel),
-        (XLMConfig, XLMWithLMHeadModel),
-        (ElectraConfig, ElectraForMaskedLM),
-        (ReformerConfig, ReformerForMaskedLM),
-        (FunnelConfig, FunnelForMaskedLM),
-        (MPNetConfig, MPNetForMaskedLM),
-        (TapasConfig, TapasForMaskedLM),
-        (DebertaConfig, DebertaForMaskedLM),
-        (DebertaV2Config, DebertaV2ForMaskedLM),
-        (IBertConfig, IBertForMaskedLM),
+        ("albert", "AlbertForMaskedLM"),
+        ("bart", "BartForConditionalGeneration"),
+        ("bert", "BertForMaskedLM"),
+        ("big_bird", "BigBirdForMaskedLM"),
+        ("camembert", "CamembertForMaskedLM"),
+        ("convbert", "ConvBertForMaskedLM"),
+        ("data2vec-text", "Data2VecTextForMaskedLM"),
+        ("deberta", "DebertaForMaskedLM"),
+        ("deberta-v2", "DebertaV2ForMaskedLM"),
+        ("distilbert", "DistilBertForMaskedLM"),
+        ("electra", "ElectraForMaskedLM"),
+        ("ernie", "ErnieForMaskedLM"),
+        ("esm", "EsmForMaskedLM"),
+        ("flaubert", "FlaubertWithLMHeadModel"),
+        ("fnet", "FNetForMaskedLM"),
+        ("funnel", "FunnelForMaskedLM"),
+        ("ibert", "IBertForMaskedLM"),
+        ("layoutlm", "LayoutLMForMaskedLM"),
+        ("longformer", "LongformerForMaskedLM"),
+        ("luke", "LukeForMaskedLM"),
+        ("mbart", "MBartForConditionalGeneration"),
+        ("mega", "MegaForMaskedLM"),
+        ("megatron-bert", "MegatronBertForMaskedLM"),
+        ("mobilebert", "MobileBertForMaskedLM"),
+        ("modernbert", "ModernBertForMaskedLM"),
+        ("mpnet", "MPNetForMaskedLM"),
+        ("mra", "MraForMaskedLM"),
+        ("mvp", "MvpForConditionalGeneration"),
+        ("nezha", "NezhaForMaskedLM"),
+        ("nystromformer", "NystromformerForMaskedLM"),
+        ("perceiver", "PerceiverForMaskedLM"),
+        ("qdqbert", "QDQBertForMaskedLM"),
+        ("reformer", "ReformerForMaskedLM"),
+        ("rembert", "RemBertForMaskedLM"),
+        ("roberta", "RobertaForMaskedLM"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForMaskedLM"),
+        ("roc_bert", "RoCBertForMaskedLM"),
+        ("roformer", "RoFormerForMaskedLM"),
+        ("squeezebert", "SqueezeBertForMaskedLM"),
+        ("tapas", "TapasForMaskedLM"),
+        ("wav2vec2", "Wav2Vec2ForMaskedLM"),
+        ("xlm", "XLMWithLMHeadModel"),
+        ("xlm-roberta", "XLMRobertaForMaskedLM"),
+        ("xlm-roberta-xl", "XLMRobertaXLForMaskedLM"),
+        ("xmod", "XmodForMaskedLM"),
+        ("yoso", "YosoForMaskedLM"),
     ]
 )
 
-MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING = OrderedDict(
+MODEL_FOR_OBJECT_DETECTION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Object Detection mapping
+        ("conditional_detr", "ConditionalDetrForObjectDetection"),
+        ("d_fine", "DFineForObjectDetection"),
+        ("dab-detr", "DabDetrForObjectDetection"),
+        ("deformable_detr", "DeformableDetrForObjectDetection"),
+        ("deta", "DetaForObjectDetection"),
+        ("detr", "DetrForObjectDetection"),
+        ("rt_detr", "RTDetrForObjectDetection"),
+        ("rt_detr_v2", "RTDetrV2ForObjectDetection"),
+        ("table-transformer", "TableTransformerForObjectDetection"),
+        ("yolos", "YolosForObjectDetection"),
+    ]
+)
+
+MODEL_FOR_ZERO_SHOT_OBJECT_DETECTION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Zero Shot Object Detection mapping
+        ("grounding-dino", "GroundingDinoForObjectDetection"),
+        ("omdet-turbo", "OmDetTurboForObjectDetection"),
+        ("owlv2", "Owlv2ForObjectDetection"),
+        ("owlvit", "OwlViTForObjectDetection"),
+    ]
+)
+
+MODEL_FOR_DEPTH_ESTIMATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for depth estimation mapping
+        ("depth_anything", "DepthAnythingForDepthEstimation"),
+        ("depth_pro", "DepthProForDepthEstimation"),
+        ("dpt", "DPTForDepthEstimation"),
+        ("glpn", "GLPNForDepthEstimation"),
+        ("prompt_depth_anything", "PromptDepthAnythingForDepthEstimation"),
+        ("zoedepth", "ZoeDepthForDepthEstimation"),
+    ]
+)
+MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
     [
         # Model for Seq2Seq Causal LM mapping
-        (M2M100Config, M2M100ForConditionalGeneration),
-        (LEDConfig, LEDForConditionalGeneration),
-        (BlenderbotSmallConfig, BlenderbotSmallForConditionalGeneration),
-        (MT5Config, MT5ForConditionalGeneration),
-        (T5Config, T5ForConditionalGeneration),
-        (PegasusConfig, PegasusForConditionalGeneration),
-        (MarianConfig, MarianMTModel),
-        (MBartConfig, MBartForConditionalGeneration),
-        (BlenderbotConfig, BlenderbotForConditionalGeneration),
-        (BartConfig, BartForConditionalGeneration),
-        (FSMTConfig, FSMTForConditionalGeneration),
-        (EncoderDecoderConfig, EncoderDecoderModel),
-        (XLMProphetNetConfig, XLMProphetNetForConditionalGeneration),
-        (ProphetNetConfig, ProphetNetForConditionalGeneration),
+        ("bart", "BartForConditionalGeneration"),
+        ("bigbird_pegasus", "BigBirdPegasusForConditionalGeneration"),
+        ("blenderbot", "BlenderbotForConditionalGeneration"),
+        ("blenderbot-small", "BlenderbotSmallForConditionalGeneration"),
+        ("encoder-decoder", "EncoderDecoderModel"),
+        ("fsmt", "FSMTForConditionalGeneration"),
+        ("gptsan-japanese", "GPTSanJapaneseForConditionalGeneration"),
+        ("granite_speech", "GraniteSpeechForConditionalGeneration"),
+        ("led", "LEDForConditionalGeneration"),
+        ("longt5", "LongT5ForConditionalGeneration"),
+        ("m2m_100", "M2M100ForConditionalGeneration"),
+        ("marian", "MarianMTModel"),
+        ("mbart", "MBartForConditionalGeneration"),
+        ("mt5", "MT5ForConditionalGeneration"),
+        ("mvp", "MvpForConditionalGeneration"),
+        ("nllb-moe", "NllbMoeForConditionalGeneration"),
+        ("pegasus", "PegasusForConditionalGeneration"),
+        ("pegasus_x", "PegasusXForConditionalGeneration"),
+        ("plbart", "PLBartForConditionalGeneration"),
+        ("prophetnet", "ProphetNetForConditionalGeneration"),
+        ("qwen2_audio", "Qwen2AudioForConditionalGeneration"),
+        ("seamless_m4t", "SeamlessM4TForTextToText"),
+        ("seamless_m4t_v2", "SeamlessM4Tv2ForTextToText"),
+        ("switch_transformers", "SwitchTransformersForConditionalGeneration"),
+        ("t5", "T5ForConditionalGeneration"),
+        ("umt5", "UMT5ForConditionalGeneration"),
+        ("xlm-prophetnet", "XLMProphetNetForConditionalGeneration"),
     ]
 )
 
-MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING = OrderedDict(
+MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES = OrderedDict(
+    [
+        ("granite_speech", "GraniteSpeechForConditionalGeneration"),
+        ("moonshine", "MoonshineForConditionalGeneration"),
+        ("pop2piano", "Pop2PianoForConditionalGeneration"),
+        ("seamless_m4t", "SeamlessM4TForSpeechToText"),
+        ("seamless_m4t_v2", "SeamlessM4Tv2ForSpeechToText"),
+        ("speech-encoder-decoder", "SpeechEncoderDecoderModel"),
+        ("speech_to_text", "Speech2TextForConditionalGeneration"),
+        ("speecht5", "SpeechT5ForSpeechToText"),
+        ("whisper", "WhisperForConditionalGeneration"),
+    ]
+)
+
+MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
     [
         # Model for Sequence Classification mapping
-        (ConvBertConfig, ConvBertForSequenceClassification),
-        (LEDConfig, LEDForSequenceClassification),
-        (DistilBertConfig, DistilBertForSequenceClassification),
-        (AlbertConfig, AlbertForSequenceClassification),
-        (CamembertConfig, CamembertForSequenceClassification),
-        (XLMRobertaConfig, XLMRobertaForSequenceClassification),
-        (MBartConfig, MBartForSequenceClassification),
-        (BartConfig, BartForSequenceClassification),
-        (LongformerConfig, LongformerForSequenceClassification),
-        (RobertaConfig, RobertaForSequenceClassification),
-        (SqueezeBertConfig, SqueezeBertForSequenceClassification),
-        (LayoutLMConfig, LayoutLMForSequenceClassification),
-        (BertConfig, BertForSequenceClassification),
-        (XLNetConfig, XLNetForSequenceClassification),
-        (MobileBertConfig, MobileBertForSequenceClassification),
-        (FlaubertConfig, FlaubertForSequenceClassification),
-        (XLMConfig, XLMForSequenceClassification),
-        (ElectraConfig, ElectraForSequenceClassification),
-        (FunnelConfig, FunnelForSequenceClassification),
-        (DebertaConfig, DebertaForSequenceClassification),
-        (DebertaV2Config, DebertaV2ForSequenceClassification),
-        (GPT2Config, GPT2ForSequenceClassification),
-        (OpenAIGPTConfig, OpenAIGPTForSequenceClassification),
-        (ReformerConfig, ReformerForSequenceClassification),
-        (CTRLConfig, CTRLForSequenceClassification),
-        (TransfoXLConfig, TransfoXLForSequenceClassification),
-        (MPNetConfig, MPNetForSequenceClassification),
-        (TapasConfig, TapasForSequenceClassification),
-        (IBertConfig, IBertForSequenceClassification),
+        ("albert", "AlbertForSequenceClassification"),
+        ("bart", "BartForSequenceClassification"),
+        ("bert", "BertForSequenceClassification"),
+        ("big_bird", "BigBirdForSequenceClassification"),
+        ("bigbird_pegasus", "BigBirdPegasusForSequenceClassification"),
+        ("biogpt", "BioGptForSequenceClassification"),
+        ("bloom", "BloomForSequenceClassification"),
+        ("camembert", "CamembertForSequenceClassification"),
+        ("canine", "CanineForSequenceClassification"),
+        ("code_llama", "LlamaForSequenceClassification"),
+        ("convbert", "ConvBertForSequenceClassification"),
+        ("ctrl", "CTRLForSequenceClassification"),
+        ("data2vec-text", "Data2VecTextForSequenceClassification"),
+        ("deberta", "DebertaForSequenceClassification"),
+        ("deberta-v2", "DebertaV2ForSequenceClassification"),
+        ("diffllama", "DiffLlamaForSequenceClassification"),
+        ("distilbert", "DistilBertForSequenceClassification"),
+        ("electra", "ElectraForSequenceClassification"),
+        ("ernie", "ErnieForSequenceClassification"),
+        ("ernie_m", "ErnieMForSequenceClassification"),
+        ("esm", "EsmForSequenceClassification"),
+        ("falcon", "FalconForSequenceClassification"),
+        ("flaubert", "FlaubertForSequenceClassification"),
+        ("fnet", "FNetForSequenceClassification"),
+        ("funnel", "FunnelForSequenceClassification"),
+        ("gemma", "GemmaForSequenceClassification"),
+        ("gemma2", "Gemma2ForSequenceClassification"),
+        ("glm", "GlmForSequenceClassification"),
+        ("glm4", "Glm4ForSequenceClassification"),
+        ("gpt-sw3", "GPT2ForSequenceClassification"),
+        ("gpt2", "GPT2ForSequenceClassification"),
+        ("gpt_bigcode", "GPTBigCodeForSequenceClassification"),
+        ("gpt_neo", "GPTNeoForSequenceClassification"),
+        ("gpt_neox", "GPTNeoXForSequenceClassification"),
+        ("gptj", "GPTJForSequenceClassification"),
+        ("helium", "HeliumForSequenceClassification"),
+        ("ibert", "IBertForSequenceClassification"),
+        ("jamba", "JambaForSequenceClassification"),
+        ("jetmoe", "JetMoeForSequenceClassification"),
+        ("layoutlm", "LayoutLMForSequenceClassification"),
+        ("layoutlmv2", "LayoutLMv2ForSequenceClassification"),
+        ("layoutlmv3", "LayoutLMv3ForSequenceClassification"),
+        ("led", "LEDForSequenceClassification"),
+        ("lilt", "LiltForSequenceClassification"),
+        ("llama", "LlamaForSequenceClassification"),
+        ("longformer", "LongformerForSequenceClassification"),
+        ("luke", "LukeForSequenceClassification"),
+        ("markuplm", "MarkupLMForSequenceClassification"),
+        ("mbart", "MBartForSequenceClassification"),
+        ("mega", "MegaForSequenceClassification"),
+        ("megatron-bert", "MegatronBertForSequenceClassification"),
+        ("mistral", "MistralForSequenceClassification"),
+        ("mixtral", "MixtralForSequenceClassification"),
+        ("mobilebert", "MobileBertForSequenceClassification"),
+        ("modernbert", "ModernBertForSequenceClassification"),
+        ("mpnet", "MPNetForSequenceClassification"),
+        ("mpt", "MptForSequenceClassification"),
+        ("mra", "MraForSequenceClassification"),
+        ("mt5", "MT5ForSequenceClassification"),
+        ("mvp", "MvpForSequenceClassification"),
+        ("nemotron", "NemotronForSequenceClassification"),
+        ("nezha", "NezhaForSequenceClassification"),
+        ("nystromformer", "NystromformerForSequenceClassification"),
+        ("open-llama", "OpenLlamaForSequenceClassification"),
+        ("openai-gpt", "OpenAIGPTForSequenceClassification"),
+        ("opt", "OPTForSequenceClassification"),
+        ("perceiver", "PerceiverForSequenceClassification"),
+        ("persimmon", "PersimmonForSequenceClassification"),
+        ("phi", "PhiForSequenceClassification"),
+        ("phi3", "Phi3ForSequenceClassification"),
+        ("phimoe", "PhimoeForSequenceClassification"),
+        ("plbart", "PLBartForSequenceClassification"),
+        ("qdqbert", "QDQBertForSequenceClassification"),
+        ("qwen2", "Qwen2ForSequenceClassification"),
+        ("qwen2_moe", "Qwen2MoeForSequenceClassification"),
+        ("qwen3", "Qwen3ForSequenceClassification"),
+        ("qwen3_moe", "Qwen3MoeForSequenceClassification"),
+        ("reformer", "ReformerForSequenceClassification"),
+        ("rembert", "RemBertForSequenceClassification"),
+        ("roberta", "RobertaForSequenceClassification"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForSequenceClassification"),
+        ("roc_bert", "RoCBertForSequenceClassification"),
+        ("roformer", "RoFormerForSequenceClassification"),
+        ("squeezebert", "SqueezeBertForSequenceClassification"),
+        ("stablelm", "StableLmForSequenceClassification"),
+        ("starcoder2", "Starcoder2ForSequenceClassification"),
+        ("t5", "T5ForSequenceClassification"),
+        ("tapas", "TapasForSequenceClassification"),
+        ("transfo-xl", "TransfoXLForSequenceClassification"),
+        ("umt5", "UMT5ForSequenceClassification"),
+        ("xlm", "XLMForSequenceClassification"),
+        ("xlm-roberta", "XLMRobertaForSequenceClassification"),
+        ("xlm-roberta-xl", "XLMRobertaXLForSequenceClassification"),
+        ("xlnet", "XLNetForSequenceClassification"),
+        ("xmod", "XmodForSequenceClassification"),
+        ("yoso", "YosoForSequenceClassification"),
+        ("zamba", "ZambaForSequenceClassification"),
+        ("zamba2", "Zamba2ForSequenceClassification"),
     ]
 )
 
-MODEL_FOR_QUESTION_ANSWERING_MAPPING = OrderedDict(
+MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
     [
         # Model for Question Answering mapping
-        (ConvBertConfig, ConvBertForQuestionAnswering),
-        (LEDConfig, LEDForQuestionAnswering),
-        (DistilBertConfig, DistilBertForQuestionAnswering),
-        (AlbertConfig, AlbertForQuestionAnswering),
-        (CamembertConfig, CamembertForQuestionAnswering),
-        (BartConfig, BartForQuestionAnswering),
-        (MBartConfig, MBartForQuestionAnswering),
-        (LongformerConfig, LongformerForQuestionAnswering),
-        (XLMRobertaConfig, XLMRobertaForQuestionAnswering),
-        (RobertaConfig, RobertaForQuestionAnswering),
-        (SqueezeBertConfig, SqueezeBertForQuestionAnswering),
-        (BertConfig, BertForQuestionAnswering),
-        (XLNetConfig, XLNetForQuestionAnsweringSimple),
-        (FlaubertConfig, FlaubertForQuestionAnsweringSimple),
-        (MobileBertConfig, MobileBertForQuestionAnswering),
-        (XLMConfig, XLMForQuestionAnsweringSimple),
-        (ElectraConfig, ElectraForQuestionAnswering),
-        (ReformerConfig, ReformerForQuestionAnswering),
-        (FunnelConfig, FunnelForQuestionAnswering),
-        (LxmertConfig, LxmertForQuestionAnswering),
-        (MPNetConfig, MPNetForQuestionAnswering),
-        (DebertaConfig, DebertaForQuestionAnswering),
-        (DebertaV2Config, DebertaV2ForQuestionAnswering),
-        (IBertConfig, IBertForQuestionAnswering),
+        ("albert", "AlbertForQuestionAnswering"),
+        ("bart", "BartForQuestionAnswering"),
+        ("bert", "BertForQuestionAnswering"),
+        ("big_bird", "BigBirdForQuestionAnswering"),
+        ("bigbird_pegasus", "BigBirdPegasusForQuestionAnswering"),
+        ("bloom", "BloomForQuestionAnswering"),
+        ("camembert", "CamembertForQuestionAnswering"),
+        ("canine", "CanineForQuestionAnswering"),
+        ("convbert", "ConvBertForQuestionAnswering"),
+        ("data2vec-text", "Data2VecTextForQuestionAnswering"),
+        ("deberta", "DebertaForQuestionAnswering"),
+        ("deberta-v2", "DebertaV2ForQuestionAnswering"),
+        ("diffllama", "DiffLlamaForQuestionAnswering"),
+        ("distilbert", "DistilBertForQuestionAnswering"),
+        ("electra", "ElectraForQuestionAnswering"),
+        ("ernie", "ErnieForQuestionAnswering"),
+        ("ernie_m", "ErnieMForQuestionAnswering"),
+        ("falcon", "FalconForQuestionAnswering"),
+        ("flaubert", "FlaubertForQuestionAnsweringSimple"),
+        ("fnet", "FNetForQuestionAnswering"),
+        ("funnel", "FunnelForQuestionAnswering"),
+        ("gpt2", "GPT2ForQuestionAnswering"),
+        ("gpt_neo", "GPTNeoForQuestionAnswering"),
+        ("gpt_neox", "GPTNeoXForQuestionAnswering"),
+        ("gptj", "GPTJForQuestionAnswering"),
+        ("ibert", "IBertForQuestionAnswering"),
+        ("layoutlmv2", "LayoutLMv2ForQuestionAnswering"),
+        ("layoutlmv3", "LayoutLMv3ForQuestionAnswering"),
+        ("led", "LEDForQuestionAnswering"),
+        ("lilt", "LiltForQuestionAnswering"),
+        ("llama", "LlamaForQuestionAnswering"),
+        ("longformer", "LongformerForQuestionAnswering"),
+        ("luke", "LukeForQuestionAnswering"),
+        ("lxmert", "LxmertForQuestionAnswering"),
+        ("markuplm", "MarkupLMForQuestionAnswering"),
+        ("mbart", "MBartForQuestionAnswering"),
+        ("mega", "MegaForQuestionAnswering"),
+        ("megatron-bert", "MegatronBertForQuestionAnswering"),
+        ("mistral", "MistralForQuestionAnswering"),
+        ("mixtral", "MixtralForQuestionAnswering"),
+        ("mobilebert", "MobileBertForQuestionAnswering"),
+        ("modernbert", "ModernBertForQuestionAnswering"),
+        ("mpnet", "MPNetForQuestionAnswering"),
+        ("mpt", "MptForQuestionAnswering"),
+        ("mra", "MraForQuestionAnswering"),
+        ("mt5", "MT5ForQuestionAnswering"),
+        ("mvp", "MvpForQuestionAnswering"),
+        ("nemotron", "NemotronForQuestionAnswering"),
+        ("nezha", "NezhaForQuestionAnswering"),
+        ("nystromformer", "NystromformerForQuestionAnswering"),
+        ("opt", "OPTForQuestionAnswering"),
+        ("qdqbert", "QDQBertForQuestionAnswering"),
+        ("qwen2", "Qwen2ForQuestionAnswering"),
+        ("qwen2_moe", "Qwen2MoeForQuestionAnswering"),
+        ("qwen3", "Qwen3ForQuestionAnswering"),
+        ("qwen3_moe", "Qwen3MoeForQuestionAnswering"),
+        ("reformer", "ReformerForQuestionAnswering"),
+        ("rembert", "RemBertForQuestionAnswering"),
+        ("roberta", "RobertaForQuestionAnswering"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForQuestionAnswering"),
+        ("roc_bert", "RoCBertForQuestionAnswering"),
+        ("roformer", "RoFormerForQuestionAnswering"),
+        ("splinter", "SplinterForQuestionAnswering"),
+        ("squeezebert", "SqueezeBertForQuestionAnswering"),
+        ("t5", "T5ForQuestionAnswering"),
+        ("umt5", "UMT5ForQuestionAnswering"),
+        ("xlm", "XLMForQuestionAnsweringSimple"),
+        ("xlm-roberta", "XLMRobertaForQuestionAnswering"),
+        ("xlm-roberta-xl", "XLMRobertaXLForQuestionAnswering"),
+        ("xlnet", "XLNetForQuestionAnsweringSimple"),
+        ("xmod", "XmodForQuestionAnswering"),
+        ("yoso", "YosoForQuestionAnswering"),
     ]
 )
 
-MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING = OrderedDict(
+MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
     [
         # Model for Table Question Answering mapping
-        (TapasConfig, TapasForQuestionAnswering),
+        ("tapas", "TapasForQuestionAnswering"),
     ]
 )
 
-MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING = OrderedDict(
+MODEL_FOR_VISUAL_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
+    [
+        ("blip", "BlipForQuestionAnswering"),
+        ("blip-2", "Blip2ForConditionalGeneration"),
+        ("vilt", "ViltForQuestionAnswering"),
+    ]
+)
+
+MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
+    [
+        ("layoutlm", "LayoutLMForQuestionAnswering"),
+        ("layoutlmv2", "LayoutLMv2ForQuestionAnswering"),
+        ("layoutlmv3", "LayoutLMv3ForQuestionAnswering"),
+    ]
+)
+
+MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
     [
         # Model for Token Classification mapping
-        (ConvBertConfig, ConvBertForTokenClassification),
-        (LayoutLMConfig, LayoutLMForTokenClassification),
-        (DistilBertConfig, DistilBertForTokenClassification),
-        (CamembertConfig, CamembertForTokenClassification),
-        (FlaubertConfig, FlaubertForTokenClassification),
-        (XLMConfig, XLMForTokenClassification),
-        (XLMRobertaConfig, XLMRobertaForTokenClassification),
-        (LongformerConfig, LongformerForTokenClassification),
-        (RobertaConfig, RobertaForTokenClassification),
-        (SqueezeBertConfig, SqueezeBertForTokenClassification),
-        (BertConfig, BertForTokenClassification),
-        (MobileBertConfig, MobileBertForTokenClassification),
-        (XLNetConfig, XLNetForTokenClassification),
-        (AlbertConfig, AlbertForTokenClassification),
-        (ElectraConfig, ElectraForTokenClassification),
-        (FlaubertConfig, FlaubertForTokenClassification),
-        (FunnelConfig, FunnelForTokenClassification),
-        (MPNetConfig, MPNetForTokenClassification),
-        (DebertaConfig, DebertaForTokenClassification),
-        (DebertaV2Config, DebertaV2ForTokenClassification),
-        (IBertConfig, IBertForTokenClassification),
+        ("albert", "AlbertForTokenClassification"),
+        ("bert", "BertForTokenClassification"),
+        ("big_bird", "BigBirdForTokenClassification"),
+        ("biogpt", "BioGptForTokenClassification"),
+        ("bloom", "BloomForTokenClassification"),
+        ("bros", "BrosForTokenClassification"),
+        ("camembert", "CamembertForTokenClassification"),
+        ("canine", "CanineForTokenClassification"),
+        ("convbert", "ConvBertForTokenClassification"),
+        ("data2vec-text", "Data2VecTextForTokenClassification"),
+        ("deberta", "DebertaForTokenClassification"),
+        ("deberta-v2", "DebertaV2ForTokenClassification"),
+        ("diffllama", "DiffLlamaForTokenClassification"),
+        ("distilbert", "DistilBertForTokenClassification"),
+        ("electra", "ElectraForTokenClassification"),
+        ("ernie", "ErnieForTokenClassification"),
+        ("ernie_m", "ErnieMForTokenClassification"),
+        ("esm", "EsmForTokenClassification"),
+        ("falcon", "FalconForTokenClassification"),
+        ("flaubert", "FlaubertForTokenClassification"),
+        ("fnet", "FNetForTokenClassification"),
+        ("funnel", "FunnelForTokenClassification"),
+        ("gemma", "GemmaForTokenClassification"),
+        ("gemma2", "Gemma2ForTokenClassification"),
+        ("glm", "GlmForTokenClassification"),
+        ("glm4", "Glm4ForTokenClassification"),
+        ("gpt-sw3", "GPT2ForTokenClassification"),
+        ("gpt2", "GPT2ForTokenClassification"),
+        ("gpt_bigcode", "GPTBigCodeForTokenClassification"),
+        ("gpt_neo", "GPTNeoForTokenClassification"),
+        ("gpt_neox", "GPTNeoXForTokenClassification"),
+        ("helium", "HeliumForTokenClassification"),
+        ("ibert", "IBertForTokenClassification"),
+        ("layoutlm", "LayoutLMForTokenClassification"),
+        ("layoutlmv2", "LayoutLMv2ForTokenClassification"),
+        ("layoutlmv3", "LayoutLMv3ForTokenClassification"),
+        ("lilt", "LiltForTokenClassification"),
+        ("llama", "LlamaForTokenClassification"),
+        ("longformer", "LongformerForTokenClassification"),
+        ("luke", "LukeForTokenClassification"),
+        ("markuplm", "MarkupLMForTokenClassification"),
+        ("mega", "MegaForTokenClassification"),
+        ("megatron-bert", "MegatronBertForTokenClassification"),
+        ("mistral", "MistralForTokenClassification"),
+        ("mixtral", "MixtralForTokenClassification"),
+        ("mobilebert", "MobileBertForTokenClassification"),
+        ("modernbert", "ModernBertForTokenClassification"),
+        ("mpnet", "MPNetForTokenClassification"),
+        ("mpt", "MptForTokenClassification"),
+        ("mra", "MraForTokenClassification"),
+        ("mt5", "MT5ForTokenClassification"),
+        ("nemotron", "NemotronForTokenClassification"),
+        ("nezha", "NezhaForTokenClassification"),
+        ("nystromformer", "NystromformerForTokenClassification"),
+        ("persimmon", "PersimmonForTokenClassification"),
+        ("phi", "PhiForTokenClassification"),
+        ("phi3", "Phi3ForTokenClassification"),
+        ("qdqbert", "QDQBertForTokenClassification"),
+        ("qwen2", "Qwen2ForTokenClassification"),
+        ("qwen2_moe", "Qwen2MoeForTokenClassification"),
+        ("qwen3", "Qwen3ForTokenClassification"),
+        ("qwen3_moe", "Qwen3MoeForTokenClassification"),
+        ("rembert", "RemBertForTokenClassification"),
+        ("roberta", "RobertaForTokenClassification"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForTokenClassification"),
+        ("roc_bert", "RoCBertForTokenClassification"),
+        ("roformer", "RoFormerForTokenClassification"),
+        ("squeezebert", "SqueezeBertForTokenClassification"),
+        ("stablelm", "StableLmForTokenClassification"),
+        ("starcoder2", "Starcoder2ForTokenClassification"),
+        ("t5", "T5ForTokenClassification"),
+        ("umt5", "UMT5ForTokenClassification"),
+        ("xlm", "XLMForTokenClassification"),
+        ("xlm-roberta", "XLMRobertaForTokenClassification"),
+        ("xlm-roberta-xl", "XLMRobertaXLForTokenClassification"),
+        ("xlnet", "XLNetForTokenClassification"),
+        ("xmod", "XmodForTokenClassification"),
+        ("yoso", "YosoForTokenClassification"),
     ]
 )
 
-MODEL_FOR_MULTIPLE_CHOICE_MAPPING = OrderedDict(
+MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES = OrderedDict(
     [
         # Model for Multiple Choice mapping
-        (ConvBertConfig, ConvBertForMultipleChoice),
-        (CamembertConfig, CamembertForMultipleChoice),
-        (ElectraConfig, ElectraForMultipleChoice),
-        (XLMRobertaConfig, XLMRobertaForMultipleChoice),
-        (LongformerConfig, LongformerForMultipleChoice),
-        (RobertaConfig, RobertaForMultipleChoice),
-        (SqueezeBertConfig, SqueezeBertForMultipleChoice),
-        (BertConfig, BertForMultipleChoice),
-        (DistilBertConfig, DistilBertForMultipleChoice),
-        (MobileBertConfig, MobileBertForMultipleChoice),
-        (XLNetConfig, XLNetForMultipleChoice),
-        (AlbertConfig, AlbertForMultipleChoice),
-        (XLMConfig, XLMForMultipleChoice),
-        (FlaubertConfig, FlaubertForMultipleChoice),
-        (FunnelConfig, FunnelForMultipleChoice),
-        (MPNetConfig, MPNetForMultipleChoice),
-        (IBertConfig, IBertForMultipleChoice),
+        ("albert", "AlbertForMultipleChoice"),
+        ("bert", "BertForMultipleChoice"),
+        ("big_bird", "BigBirdForMultipleChoice"),
+        ("camembert", "CamembertForMultipleChoice"),
+        ("canine", "CanineForMultipleChoice"),
+        ("convbert", "ConvBertForMultipleChoice"),
+        ("data2vec-text", "Data2VecTextForMultipleChoice"),
+        ("deberta-v2", "DebertaV2ForMultipleChoice"),
+        ("distilbert", "DistilBertForMultipleChoice"),
+        ("electra", "ElectraForMultipleChoice"),
+        ("ernie", "ErnieForMultipleChoice"),
+        ("ernie_m", "ErnieMForMultipleChoice"),
+        ("flaubert", "FlaubertForMultipleChoice"),
+        ("fnet", "FNetForMultipleChoice"),
+        ("funnel", "FunnelForMultipleChoice"),
+        ("ibert", "IBertForMultipleChoice"),
+        ("longformer", "LongformerForMultipleChoice"),
+        ("luke", "LukeForMultipleChoice"),
+        ("mega", "MegaForMultipleChoice"),
+        ("megatron-bert", "MegatronBertForMultipleChoice"),
+        ("mobilebert", "MobileBertForMultipleChoice"),
+        ("mpnet", "MPNetForMultipleChoice"),
+        ("mra", "MraForMultipleChoice"),
+        ("nezha", "NezhaForMultipleChoice"),
+        ("nystromformer", "NystromformerForMultipleChoice"),
+        ("qdqbert", "QDQBertForMultipleChoice"),
+        ("rembert", "RemBertForMultipleChoice"),
+        ("roberta", "RobertaForMultipleChoice"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormForMultipleChoice"),
+        ("roc_bert", "RoCBertForMultipleChoice"),
+        ("roformer", "RoFormerForMultipleChoice"),
+        ("squeezebert", "SqueezeBertForMultipleChoice"),
+        ("xlm", "XLMForMultipleChoice"),
+        ("xlm-roberta", "XLMRobertaForMultipleChoice"),
+        ("xlm-roberta-xl", "XLMRobertaXLForMultipleChoice"),
+        ("xlnet", "XLNetForMultipleChoice"),
+        ("xmod", "XmodForMultipleChoice"),
+        ("yoso", "YosoForMultipleChoice"),
     ]
 )
 
-MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING = OrderedDict(
+MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING_NAMES = OrderedDict(
     [
-        (BertConfig, BertForNextSentencePrediction),
-        (MobileBertConfig, MobileBertForNextSentencePrediction),
+        ("bert", "BertForNextSentencePrediction"),
+        ("ernie", "ErnieForNextSentencePrediction"),
+        ("fnet", "FNetForNextSentencePrediction"),
+        ("megatron-bert", "MegatronBertForNextSentencePrediction"),
+        ("mobilebert", "MobileBertForNextSentencePrediction"),
+        ("nezha", "NezhaForNextSentencePrediction"),
+        ("qdqbert", "QDQBertForNextSentencePrediction"),
     ]
 )
 
-AUTO_MODEL_PRETRAINED_DOCSTRING = r"""
+MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Audio Classification mapping
+        ("audio-spectrogram-transformer", "ASTForAudioClassification"),
+        ("data2vec-audio", "Data2VecAudioForSequenceClassification"),
+        ("hubert", "HubertForSequenceClassification"),
+        ("sew", "SEWForSequenceClassification"),
+        ("sew-d", "SEWDForSequenceClassification"),
+        ("unispeech", "UniSpeechForSequenceClassification"),
+        ("unispeech-sat", "UniSpeechSatForSequenceClassification"),
+        ("wav2vec2", "Wav2Vec2ForSequenceClassification"),
+        ("wav2vec2-bert", "Wav2Vec2BertForSequenceClassification"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerForSequenceClassification"),
+        ("wavlm", "WavLMForSequenceClassification"),
+        ("whisper", "WhisperForAudioClassification"),
+    ]
+)
 
-        The model class to instantiate is selected based on the :obj:`model_type` property of the config object (either
-        passed as an argument or loaded from :obj:`pretrained_model_name_or_path` if possible), or when it's missing,
-        by falling back to using pattern matching on :obj:`pretrained_model_name_or_path`:
+MODEL_FOR_CTC_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Connectionist temporal classification (CTC) mapping
+        ("data2vec-audio", "Data2VecAudioForCTC"),
+        ("hubert", "HubertForCTC"),
+        ("mctct", "MCTCTForCTC"),
+        ("sew", "SEWForCTC"),
+        ("sew-d", "SEWDForCTC"),
+        ("unispeech", "UniSpeechForCTC"),
+        ("unispeech-sat", "UniSpeechSatForCTC"),
+        ("wav2vec2", "Wav2Vec2ForCTC"),
+        ("wav2vec2-bert", "Wav2Vec2BertForCTC"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerForCTC"),
+        ("wavlm", "WavLMForCTC"),
+    ]
+)
 
-        List options
+MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Audio Classification mapping
+        ("data2vec-audio", "Data2VecAudioForAudioFrameClassification"),
+        ("unispeech-sat", "UniSpeechSatForAudioFrameClassification"),
+        ("wav2vec2", "Wav2Vec2ForAudioFrameClassification"),
+        ("wav2vec2-bert", "Wav2Vec2BertForAudioFrameClassification"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerForAudioFrameClassification"),
+        ("wavlm", "WavLMForAudioFrameClassification"),
+    ]
+)
 
-        The model is set in evaluation mode by default using ``model.eval()`` (so for instance, dropout modules are
-        deactivated). To train the model, you should first set it back in training mode with ``model.train()``
+MODEL_FOR_AUDIO_XVECTOR_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Audio Classification mapping
+        ("data2vec-audio", "Data2VecAudioForXVector"),
+        ("unispeech-sat", "UniSpeechSatForXVector"),
+        ("wav2vec2", "Wav2Vec2ForXVector"),
+        ("wav2vec2-bert", "Wav2Vec2BertForXVector"),
+        ("wav2vec2-conformer", "Wav2Vec2ConformerForXVector"),
+        ("wavlm", "WavLMForXVector"),
+    ]
+)
 
-        Args:
-            pretrained_model_name_or_path (:obj:`str` or :obj:`os.PathLike`):
-                Can be either:
+MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Text-To-Spectrogram mapping
+        ("fastspeech2_conformer", "FastSpeech2ConformerModel"),
+        ("speecht5", "SpeechT5ForTextToSpeech"),
+    ]
+)
 
-                    - A string, the `model id` of a pretrained model hosted inside a model repo on huggingface.co.
-                      Valid model ids can be located at the root-level, like ``bert-base-uncased``, or namespaced under
-                      a user or organization name, like ``dbmdz/bert-base-german-cased``.
-                    - A path to a `directory` containing model weights saved using
-                      :func:`~transformers.PreTrainedModel.save_pretrained`, e.g., ``./my_model_directory/``.
-                    - A path or url to a `tensorflow index checkpoint file` (e.g, ``./tf_model/model.ckpt.index``). In
-                      this case, ``from_tf`` should be set to :obj:`True` and a configuration object should be provided
-                      as ``config`` argument. This loading path is slower than converting the TensorFlow checkpoint in
-                      a PyTorch model using the provided conversion scripts and loading the PyTorch model afterwards.
-            model_args (additional positional arguments, `optional`):
-                Will be passed along to the underlying model ``__init__()`` method.
-            config (:class:`~transformers.PretrainedConfig`, `optional`):
-                Configuration for the model to use instead of an automatically loaded configuration. Configuration can
-                be automatically loaded when:
+MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Text-To-Waveform mapping
+        ("bark", "BarkModel"),
+        ("csm", "CsmForConditionalGeneration"),
+        ("fastspeech2_conformer", "FastSpeech2ConformerWithHifiGan"),
+        ("musicgen", "MusicgenForConditionalGeneration"),
+        ("musicgen_melody", "MusicgenMelodyForConditionalGeneration"),
+        ("qwen2_5_omni", "Qwen2_5OmniForConditionalGeneration"),
+        ("seamless_m4t", "SeamlessM4TForTextToSpeech"),
+        ("seamless_m4t_v2", "SeamlessM4Tv2ForTextToSpeech"),
+        ("vits", "VitsModel"),
+    ]
+)
 
-                    - The model is a model provided by the library (loaded with the `model id` string of a pretrained
-                      model).
-                    - The model was saved using :meth:`~transformers.PreTrainedModel.save_pretrained` and is reloaded
-                      by supplying the save directory.
-                    - The model is loaded by supplying a local directory as ``pretrained_model_name_or_path`` and a
-                      configuration JSON file named `config.json` is found in the directory.
-            state_dict (`Dict[str, torch.Tensor]`, `optional`):
-                A state dictionary to use instead of a state dictionary loaded from saved weights file.
+MODEL_FOR_ZERO_SHOT_IMAGE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Zero Shot Image Classification mapping
+        ("align", "AlignModel"),
+        ("altclip", "AltCLIPModel"),
+        ("blip", "BlipModel"),
+        ("blip-2", "Blip2ForImageTextRetrieval"),
+        ("chinese_clip", "ChineseCLIPModel"),
+        ("clip", "CLIPModel"),
+        ("clipseg", "CLIPSegModel"),
+        ("siglip", "SiglipModel"),
+        ("siglip2", "Siglip2Model"),
+    ]
+)
 
-                This option can be used if you want to create a model from a pretrained configuration but load your own
-                weights. In this case though, you should check if using
-                :func:`~transformers.PreTrainedModel.save_pretrained` and
-                :func:`~transformers.PreTrainedModel.from_pretrained` is not a simpler option.
-            cache_dir (:obj:`str` or :obj:`os.PathLike`, `optional`):
-                Path to a directory in which a downloaded pretrained model configuration should be cached if the
-                standard cache should not be used.
-            from_tf (:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Load the model weights from a TensorFlow checkpoint save file (see docstring of
-                ``pretrained_model_name_or_path`` argument).
-            force_download (:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether or not to force the (re-)download of the model weights and configuration files, overriding the
-                cached versions if they exist.
-            resume_download (:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether or not to delete incompletely received files. Will attempt to resume the download if such a
-                file exists.
-            proxies (:obj:`Dict[str, str], `optional`):
-                A dictionary of proxy servers to use by protocol or endpoint, e.g., :obj:`{'http': 'foo.bar:3128',
-                'http://hostname': 'foo.bar:4012'}`. The proxies are used on each request.
-            output_loading_info(:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether ot not to also return a dictionary containing missing keys, unexpected keys and error messages.
-            local_files_only(:obj:`bool`, `optional`, defaults to :obj:`False`):
-                Whether or not to only look at local files (e.g., not try downloading the model).
-            revision(:obj:`str`, `optional`, defaults to :obj:`"main"`):
-                The specific model version to use. It can be a branch name, a tag name, or a commit id, since we use a
-                git-based system for storing models and other artifacts on huggingface.co, so ``revision`` can be any
-                identifier allowed by git.
-            kwargs (additional keyword arguments, `optional`):
-                Can be used to update the configuration object (after it being loaded) and initiate the model (e.g.,
-                :obj:`output_attentions=True`). Behaves differently depending on whether a ``config`` is provided or
-                automatically loaded:
+MODEL_FOR_BACKBONE_MAPPING_NAMES = OrderedDict(
+    [
+        # Backbone mapping
+        ("beit", "BeitBackbone"),
+        ("bit", "BitBackbone"),
+        ("convnext", "ConvNextBackbone"),
+        ("convnextv2", "ConvNextV2Backbone"),
+        ("dinat", "DinatBackbone"),
+        ("dinov2", "Dinov2Backbone"),
+        ("dinov2_with_registers", "Dinov2WithRegistersBackbone"),
+        ("focalnet", "FocalNetBackbone"),
+        ("hgnet_v2", "HGNetV2Backbone"),
+        ("hiera", "HieraBackbone"),
+        ("maskformer-swin", "MaskFormerSwinBackbone"),
+        ("nat", "NatBackbone"),
+        ("pvt_v2", "PvtV2Backbone"),
+        ("resnet", "ResNetBackbone"),
+        ("rt_detr_resnet", "RTDetrResNetBackbone"),
+        ("swin", "SwinBackbone"),
+        ("swinv2", "Swinv2Backbone"),
+        ("textnet", "TextNetBackbone"),
+        ("timm_backbone", "TimmBackbone"),
+        ("vitdet", "VitDetBackbone"),
+        ("vitpose_backbone", "VitPoseBackbone"),
+    ]
+)
 
-                    - If a configuration is provided with ``config``, ``**kwargs`` will be directly passed to the
-                      underlying model's ``__init__`` method (we assume all relevant updates to the configuration have
-                      already been done)
-                    - If a configuration is not provided, ``kwargs`` will be first passed to the configuration class
-                      initialization function (:func:`~transformers.PretrainedConfig.from_pretrained`). Each key of
-                      ``kwargs`` that corresponds to a configuration attribute will be used to override said attribute
-                      with the supplied ``kwargs`` value. Remaining keys that do not correspond to any configuration
-                      attribute will be passed to the underlying model's ``__init__`` function.
-"""
+MODEL_FOR_MASK_GENERATION_MAPPING_NAMES = OrderedDict(
+    [
+        ("sam", "SamModel"),
+    ]
+)
+
+MODEL_FOR_MASK_GENERATION_MAPPING_NAMES = OrderedDict(
+    [
+        ("sam_hq", "SamHQModel"),
+    ]
+)
 
 
-class AutoModel:
-    r"""
-    This is a generic model class that will be instantiated as one of the base model classes of the library when
-    created with the :meth:`~transformers.AutoModel.from_pretrained` class method or the
-    :meth:`~transformers.AutoModel.from_config` class method.
+MODEL_FOR_KEYPOINT_DETECTION_MAPPING_NAMES = OrderedDict(
+    [
+        ("superpoint", "SuperPointForKeypointDetection"),
+    ]
+)
 
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
 
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModel is designed to be instantiated "
-            "using the `AutoModel.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModel.from_config(config)` methods."
-        )
+MODEL_FOR_TEXT_ENCODING_MAPPING_NAMES = OrderedDict(
+    [
+        ("albert", "AlbertModel"),
+        ("bert", "BertModel"),
+        ("big_bird", "BigBirdModel"),
+        ("clip_text_model", "CLIPTextModel"),
+        ("data2vec-text", "Data2VecTextModel"),
+        ("deberta", "DebertaModel"),
+        ("deberta-v2", "DebertaV2Model"),
+        ("distilbert", "DistilBertModel"),
+        ("electra", "ElectraModel"),
+        ("emu3", "Emu3TextModel"),
+        ("flaubert", "FlaubertModel"),
+        ("ibert", "IBertModel"),
+        ("llama4", "Llama4TextModel"),
+        ("longformer", "LongformerModel"),
+        ("mllama", "MllamaTextModel"),
+        ("mobilebert", "MobileBertModel"),
+        ("mt5", "MT5EncoderModel"),
+        ("nystromformer", "NystromformerModel"),
+        ("reformer", "ReformerModel"),
+        ("rembert", "RemBertModel"),
+        ("roberta", "RobertaModel"),
+        ("roberta-prelayernorm", "RobertaPreLayerNormModel"),
+        ("roc_bert", "RoCBertModel"),
+        ("roformer", "RoFormerModel"),
+        ("squeezebert", "SqueezeBertModel"),
+        ("t5", "T5EncoderModel"),
+        ("umt5", "UMT5EncoderModel"),
+        ("xlm", "XLMModel"),
+        ("xlm-roberta", "XLMRobertaModel"),
+        ("xlm-roberta-xl", "XLMRobertaXLModel"),
+    ]
+)
 
+MODEL_FOR_TIME_SERIES_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        ("patchtsmixer", "PatchTSMixerForTimeSeriesClassification"),
+        ("patchtst", "PatchTSTForClassification"),
+    ]
+)
+
+MODEL_FOR_TIME_SERIES_REGRESSION_MAPPING_NAMES = OrderedDict(
+    [
+        ("patchtsmixer", "PatchTSMixerForRegression"),
+        ("patchtst", "PatchTSTForRegression"),
+    ]
+)
+
+MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING_NAMES = OrderedDict(
+    [
+        ("timesfm", "TimesFmModelForPrediction"),
+    ]
+)
+
+MODEL_FOR_IMAGE_TO_IMAGE_MAPPING_NAMES = OrderedDict(
+    [
+        ("swin2sr", "Swin2SRForImageSuperResolution"),
+    ]
+)
+
+MODEL_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_MAPPING_NAMES)
+MODEL_FOR_PRETRAINING_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_PRETRAINING_MAPPING_NAMES)
+MODEL_WITH_LM_HEAD_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_WITH_LM_HEAD_MAPPING_NAMES)
+MODEL_FOR_CAUSAL_LM_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_CAUSAL_LM_MAPPING_NAMES)
+MODEL_FOR_CAUSAL_IMAGE_MODELING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_CAUSAL_IMAGE_MODELING_MAPPING_NAMES
+)
+MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_ZERO_SHOT_IMAGE_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_ZERO_SHOT_IMAGE_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_IMAGE_SEGMENTATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES
+)
+MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING_NAMES
+)
+MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING_NAMES
+)
+MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING_NAMES
+)
+MODEL_FOR_VIDEO_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_VIDEO_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_VISION_2_SEQ_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES)
+MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES
+)
+MODEL_FOR_RETRIEVAL_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_RETRIEVAL_MAPPING_NAMES)
+MODEL_FOR_VISUAL_QUESTION_ANSWERING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_VISUAL_QUESTION_ANSWERING_MAPPING_NAMES
+)
+MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING_NAMES
+)
+MODEL_FOR_MASKED_LM_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_MASKED_LM_MAPPING_NAMES)
+MODEL_FOR_IMAGE_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_IMAGE_MAPPING_NAMES)
+MODEL_FOR_MASKED_IMAGE_MODELING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_MASKED_IMAGE_MODELING_MAPPING_NAMES
+)
+MODEL_FOR_OBJECT_DETECTION_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_OBJECT_DETECTION_MAPPING_NAMES)
+MODEL_FOR_ZERO_SHOT_OBJECT_DETECTION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_ZERO_SHOT_OBJECT_DETECTION_MAPPING_NAMES
+)
+MODEL_FOR_DEPTH_ESTIMATION_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_DEPTH_ESTIMATION_MAPPING_NAMES)
+MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING_NAMES
+)
+MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_QUESTION_ANSWERING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES
+)
+MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING_NAMES
+)
+MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_MULTIPLE_CHOICE_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES)
+MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING_NAMES
+)
+MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_CTC_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_CTC_MAPPING_NAMES)
+MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES)
+MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING_NAMES
+)
+MODEL_FOR_AUDIO_XVECTOR_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_AUDIO_XVECTOR_MAPPING_NAMES)
+
+MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING_NAMES
+)
+
+MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING_NAMES)
+
+MODEL_FOR_BACKBONE_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_BACKBONE_MAPPING_NAMES)
+
+MODEL_FOR_MASK_GENERATION_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_MASK_GENERATION_MAPPING_NAMES)
+
+MODEL_FOR_KEYPOINT_DETECTION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_KEYPOINT_DETECTION_MAPPING_NAMES
+)
+
+MODEL_FOR_TEXT_ENCODING_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_TEXT_ENCODING_MAPPING_NAMES)
+
+MODEL_FOR_TIME_SERIES_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TIME_SERIES_CLASSIFICATION_MAPPING_NAMES
+)
+
+MODEL_FOR_TIME_SERIES_REGRESSION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TIME_SERIES_REGRESSION_MAPPING_NAMES
+)
+
+MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING_NAMES
+)
+
+MODEL_FOR_IMAGE_TO_IMAGE_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, MODEL_FOR_IMAGE_TO_IMAGE_MAPPING_NAMES)
+
+
+class AutoModelForMaskGeneration(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_MASK_GENERATION_MAPPING
+
+
+class AutoModelForKeypointDetection(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_KEYPOINT_DETECTION_MAPPING
+
+
+class AutoModelForTextEncoding(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TEXT_ENCODING_MAPPING
+
+
+class AutoModelForImageToImage(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_IMAGE_TO_IMAGE_MAPPING
+
+
+class AutoModel(_BaseAutoModelClass):
+    _model_mapping = MODEL_MAPPING
+
+
+AutoModel = auto_class_update(AutoModel)
+
+
+class AutoModelForPreTraining(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_PRETRAINING_MAPPING
+
+
+AutoModelForPreTraining = auto_class_update(AutoModelForPreTraining, head_doc="pretraining")
+
+
+# Private on purpose, the public class will add the deprecation warnings.
+class _AutoModelWithLMHead(_BaseAutoModelClass):
+    _model_mapping = MODEL_WITH_LM_HEAD_MAPPING
+
+
+_AutoModelWithLMHead = auto_class_update(_AutoModelWithLMHead, head_doc="language modeling")
+
+
+class AutoModelForCausalLM(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_CAUSAL_LM_MAPPING
+
+
+AutoModelForCausalLM = auto_class_update(AutoModelForCausalLM, head_doc="causal language modeling")
+
+
+class AutoModelForMaskedLM(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_MASKED_LM_MAPPING
+
+
+AutoModelForMaskedLM = auto_class_update(AutoModelForMaskedLM, head_doc="masked language modeling")
+
+
+class AutoModelForSeq2SeqLM(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING
+
+
+AutoModelForSeq2SeqLM = auto_class_update(
+    AutoModelForSeq2SeqLM,
+    head_doc="sequence-to-sequence language modeling",
+    checkpoint_for_example="google-t5/t5-base",
+)
+
+
+class AutoModelForSequenceClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING
+
+
+AutoModelForSequenceClassification = auto_class_update(
+    AutoModelForSequenceClassification, head_doc="sequence classification"
+)
+
+
+class AutoModelForQuestionAnswering(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_QUESTION_ANSWERING_MAPPING
+
+
+AutoModelForQuestionAnswering = auto_class_update(AutoModelForQuestionAnswering, head_doc="question answering")
+
+
+class AutoModelForTableQuestionAnswering(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING
+
+
+AutoModelForTableQuestionAnswering = auto_class_update(
+    AutoModelForTableQuestionAnswering,
+    head_doc="table question answering",
+    checkpoint_for_example="google/tapas-base-finetuned-wtq",
+)
+
+
+class AutoModelForVisualQuestionAnswering(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_VISUAL_QUESTION_ANSWERING_MAPPING
+
+
+AutoModelForVisualQuestionAnswering = auto_class_update(
+    AutoModelForVisualQuestionAnswering,
+    head_doc="visual question answering",
+    checkpoint_for_example="dandelin/vilt-b32-finetuned-vqa",
+)
+
+
+class AutoModelForDocumentQuestionAnswering(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING
+
+
+AutoModelForDocumentQuestionAnswering = auto_class_update(
+    AutoModelForDocumentQuestionAnswering,
+    head_doc="document question answering",
+    checkpoint_for_example='impira/layoutlm-document-qa", revision="52e01b3',
+)
+
+
+class AutoModelForTokenClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING
+
+
+AutoModelForTokenClassification = auto_class_update(AutoModelForTokenClassification, head_doc="token classification")
+
+
+class AutoModelForMultipleChoice(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_MULTIPLE_CHOICE_MAPPING
+
+
+AutoModelForMultipleChoice = auto_class_update(AutoModelForMultipleChoice, head_doc="multiple choice")
+
+
+class AutoModelForNextSentencePrediction(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING
+
+
+AutoModelForNextSentencePrediction = auto_class_update(
+    AutoModelForNextSentencePrediction, head_doc="next sentence prediction"
+)
+
+
+class AutoModelForImageClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING
+
+
+AutoModelForImageClassification = auto_class_update(AutoModelForImageClassification, head_doc="image classification")
+
+
+class AutoModelForZeroShotImageClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_ZERO_SHOT_IMAGE_CLASSIFICATION_MAPPING
+
+
+AutoModelForZeroShotImageClassification = auto_class_update(
+    AutoModelForZeroShotImageClassification, head_doc="zero-shot image classification"
+)
+
+
+class AutoModelForImageSegmentation(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_IMAGE_SEGMENTATION_MAPPING
+
+
+AutoModelForImageSegmentation = auto_class_update(AutoModelForImageSegmentation, head_doc="image segmentation")
+
+
+class AutoModelForSemanticSegmentation(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING
+
+
+AutoModelForSemanticSegmentation = auto_class_update(
+    AutoModelForSemanticSegmentation, head_doc="semantic segmentation"
+)
+
+
+class AutoModelForTimeSeriesPrediction(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING
+
+
+AutoModelForTimeSeriesPrediction = auto_class_update(
+    AutoModelForTimeSeriesPrediction, head_doc="time-series prediction"
+)
+
+
+class AutoModelForUniversalSegmentation(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING
+
+
+AutoModelForUniversalSegmentation = auto_class_update(
+    AutoModelForUniversalSegmentation, head_doc="universal image segmentation"
+)
+
+
+class AutoModelForInstanceSegmentation(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING
+
+
+AutoModelForInstanceSegmentation = auto_class_update(
+    AutoModelForInstanceSegmentation, head_doc="instance segmentation"
+)
+
+
+class AutoModelForObjectDetection(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_OBJECT_DETECTION_MAPPING
+
+
+AutoModelForObjectDetection = auto_class_update(AutoModelForObjectDetection, head_doc="object detection")
+
+
+class AutoModelForZeroShotObjectDetection(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_ZERO_SHOT_OBJECT_DETECTION_MAPPING
+
+
+AutoModelForZeroShotObjectDetection = auto_class_update(
+    AutoModelForZeroShotObjectDetection, head_doc="zero-shot object detection"
+)
+
+
+class AutoModelForDepthEstimation(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_DEPTH_ESTIMATION_MAPPING
+
+
+AutoModelForDepthEstimation = auto_class_update(AutoModelForDepthEstimation, head_doc="depth estimation")
+
+
+class AutoModelForVideoClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_VIDEO_CLASSIFICATION_MAPPING
+
+
+AutoModelForVideoClassification = auto_class_update(AutoModelForVideoClassification, head_doc="video classification")
+
+
+class AutoModelForVision2Seq(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_VISION_2_SEQ_MAPPING
+
+
+AutoModelForVision2Seq = auto_class_update(AutoModelForVision2Seq, head_doc="vision-to-text modeling")
+
+
+class AutoModelForImageTextToText(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING
+
+
+AutoModelForImageTextToText = auto_class_update(AutoModelForImageTextToText, head_doc="image-text-to-text modeling")
+
+
+class AutoModelForAudioClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING
+
+
+AutoModelForAudioClassification = auto_class_update(AutoModelForAudioClassification, head_doc="audio classification")
+
+
+class AutoModelForCTC(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_CTC_MAPPING
+
+
+AutoModelForCTC = auto_class_update(AutoModelForCTC, head_doc="connectionist temporal classification")
+
+
+class AutoModelForSpeechSeq2Seq(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING
+
+
+AutoModelForSpeechSeq2Seq = auto_class_update(
+    AutoModelForSpeechSeq2Seq, head_doc="sequence-to-sequence speech-to-text modeling"
+)
+
+
+class AutoModelForAudioFrameClassification(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING
+
+
+AutoModelForAudioFrameClassification = auto_class_update(
+    AutoModelForAudioFrameClassification, head_doc="audio frame (token) classification"
+)
+
+
+class AutoModelForAudioXVector(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_AUDIO_XVECTOR_MAPPING
+
+
+class AutoModelForTextToSpectrogram(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING
+
+
+class AutoModelForTextToWaveform(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING
+
+
+class AutoBackbone(_BaseAutoBackboneClass):
+    _model_mapping = MODEL_FOR_BACKBONE_MAPPING
+
+
+AutoModelForAudioXVector = auto_class_update(AutoModelForAudioXVector, head_doc="audio retrieval via x-vector")
+
+
+class AutoModelForMaskedImageModeling(_BaseAutoModelClass):
+    _model_mapping = MODEL_FOR_MASKED_IMAGE_MODELING_MAPPING
+
+
+AutoModelForMaskedImageModeling = auto_class_update(AutoModelForMaskedImageModeling, head_doc="masked image modeling")
+
+
+class AutoModelWithLMHead(_AutoModelWithLMHead):
     @classmethod
-    @replace_list_option_in_docstrings(MODEL_MAPPING, use_model_types=False)
     def from_config(cls, config):
-        r"""
-        Instantiates one of the base model classes of the library from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModel.from_pretrained` to load the model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModel
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModel.from_config(config)
-        """
-        if type(config) in MODEL_MAPPING.keys():
-            return MODEL_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_MAPPING.keys())
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the base model classes of the library from a pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModel
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModel.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModel.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModel.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_MAPPING.keys():
-            return MODEL_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_MAPPING.keys())
-            )
-        )
-
-
-class AutoModelForPreTraining:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with the
-    architecture used for pretraining this model---when created with the
-    :meth:`~transformers.AutoModelForPreTraining.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForPreTraining.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForPreTraining is designed to be instantiated "
-            "using the `AutoModelForPreTraining.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForPreTraining.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_PRETRAINING_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with the architecture used for pretraining this
-        model---from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForPreTraining.from_pretrained` to load the model
-            weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForPreTraining
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForPreTraining.from_config(config)
-        """
-        if type(config) in MODEL_FOR_PRETRAINING_MAPPING.keys():
-            return MODEL_FOR_PRETRAINING_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_PRETRAINING_MAPPING.keys())
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_PRETRAINING_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with the architecture used for pretraining this ",
-        "model---from a pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForPreTraining
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForPreTraining.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForPreTraining.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForPreTraining.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_PRETRAINING_MAPPING.keys():
-            return MODEL_FOR_PRETRAINING_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_PRETRAINING_MAPPING.keys())
-            )
-        )
-
-
-class AutoModelWithLMHead:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a
-    language modeling head---when created with the :meth:`~transformers.AutoModelWithLMHead.from_pretrained` class
-    method or the :meth:`~transformers.AutoModelWithLMHead.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-
-    .. warning::
-
-        This class is deprecated and will be removed in a future version. Please use
-        :class:`~transformers.AutoModelForCausalLM` for causal language models,
-        :class:`~transformers.AutoModelForMaskedLM` for masked language models and
-        :class:`~transformers.AutoModelForSeq2SeqLM` for encoder-decoder models.
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelWithLMHead is designed to be instantiated "
-            "using the `AutoModelWithLMHead.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelWithLMHead.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_WITH_LM_HEAD_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a language modeling head---from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelWithLMHead.from_pretrained` to load the model
-            weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelWithLMHead
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelWithLMHead.from_config(config)
-        """
         warnings.warn(
             "The class `AutoModelWithLMHead` is deprecated and will be removed in a future version. Please use "
             "`AutoModelForCausalLM` for causal language models, `AutoModelForMaskedLM` for masked language models and "
             "`AutoModelForSeq2SeqLM` for encoder-decoder models.",
             FutureWarning,
         )
-        if type(config) in MODEL_WITH_LM_HEAD_MAPPING.keys():
-            return MODEL_WITH_LM_HEAD_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_WITH_LM_HEAD_MAPPING.keys())
-            )
-        )
+        return super().from_config(config)
 
     @classmethod
-    @replace_list_option_in_docstrings(MODEL_WITH_LM_HEAD_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a language modeling head---from a pretrained ",
-        "model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
     def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelWithLMHead
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelWithLMHead.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelWithLMHead.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelWithLMHead.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
         warnings.warn(
             "The class `AutoModelWithLMHead` is deprecated and will be removed in a future version. Please use "
             "`AutoModelForCausalLM` for causal language models, `AutoModelForMaskedLM` for masked language models and "
             "`AutoModelForSeq2SeqLM` for encoder-decoder models.",
             FutureWarning,
         )
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_WITH_LM_HEAD_MAPPING.keys():
-            return MODEL_WITH_LM_HEAD_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_WITH_LM_HEAD_MAPPING.keys())
-            )
-        )
-
-
-class AutoModelForCausalLM:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a causal
-    language modeling head---when created with the :meth:`~transformers.AutoModelForCausalLM.from_pretrained` class
-    method or the :meth:`~transformers.AutoModelForCausalLM.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForCausalLM is designed to be instantiated "
-            "using the `AutoModelForCausalLM.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForCausalLM.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_CAUSAL_LM_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a causal language modeling head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForCausalLM.from_pretrained` to load the model
-            weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForCausalLM
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('gpt2')
-            >>> model = AutoModelForCausalLM.from_config(config)
-        """
-        if type(config) in MODEL_FOR_CAUSAL_LM_MAPPING.keys():
-            return MODEL_FOR_CAUSAL_LM_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_CAUSAL_LM_MAPPING.keys())
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_CAUSAL_LM_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a causal language modeling head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForCausalLM
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForCausalLM.from_pretrained('gpt2')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForCausalLM.from_pretrained('gpt2', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/gpt2_tf_model_config.json')
-            >>> model = AutoModelForCausalLM.from_pretrained('./tf_model/gpt2_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_CAUSAL_LM_MAPPING.keys():
-            return MODEL_FOR_CAUSAL_LM_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_CAUSAL_LM_MAPPING.keys())
-            )
-        )
-
-
-class AutoModelForMaskedLM:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a masked
-    language modeling head---when created with the :meth:`~transformers.AutoModelForMaskedLM.from_pretrained` class
-    method or the :meth:`~transformers.AutoModelForMaskedLM.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForMaskedLM is designed to be instantiated "
-            "using the `AutoModelForMaskedLM.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForMaskedLM.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_MASKED_LM_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a masked language modeling head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForMaskedLM.from_pretrained` to load the model
-            weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForMaskedLM
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForMaskedLM.from_config(config)
-        """
-        if type(config) in MODEL_FOR_MASKED_LM_MAPPING.keys():
-            return MODEL_FOR_MASKED_LM_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_MASKED_LM_MAPPING.keys())
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_MASKED_LM_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a masked language modeling head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForMaskedLM
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForMaskedLM.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForMaskedLM.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForMaskedLM.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_MASKED_LM_MAPPING.keys():
-            return MODEL_FOR_MASKED_LM_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__, cls.__name__, ", ".join(c.__name__ for c in MODEL_FOR_MASKED_LM_MAPPING.keys())
-            )
-        )
-
-
-class AutoModelForSeq2SeqLM:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a
-    sequence-to-sequence language modeling head---when created with the
-    :meth:`~transformers.AutoModelForSeq2SeqLM.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForSeq2SeqLM.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForSeq2SeqLM is designed to be instantiated "
-            "using the `AutoModelForSeq2SeqLM.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForSeq2SeqLM.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a sequence-to-sequence language modeling
-        head---from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForSeq2SeqLM.from_pretrained` to load the model
-            weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForSeq2SeqLM
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('t5')
-            >>> model = AutoModelForSeq2SeqLM.from_config(config)
-        """
-        if type(config) in MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING.keys():
-            return MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a sequence-to-sequence language modeling "
-        "head---from a pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForSeq2SeqLM
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForSeq2SeqLM.from_pretrained('t5-base')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForSeq2SeqLM.from_pretrained('t5-base', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/t5_tf_model_config.json')
-            >>> model = AutoModelForSeq2SeqLM.from_pretrained('./tf_model/t5_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING.keys():
-            return MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForSequenceClassification:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a
-    sequence classification head---when created with the
-    :meth:`~transformers.AutoModelForSequenceClassification.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForSequenceClassification.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForSequenceClassification is designed to be instantiated "
-            "using the `AutoModelForSequenceClassification.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForSequenceClassification.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a sequence classification head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForSequenceClassification.from_pretrained` to load
-            the model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForSequenceClassification
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForSequenceClassification.from_config(config)
-        """
-        if type(config) in MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.keys():
-            return MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING[type(config)](config)
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a sequence classification head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForSequenceClassification
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForSequenceClassification.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.keys():
-            return MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForQuestionAnswering:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a
-    question answering head---when created with the :meth:`~transformers.AutoModeForQuestionAnswering.from_pretrained`
-    class method or the :meth:`~transformers.AutoModelForQuestionAnswering.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForQuestionAnswering is designed to be instantiated "
-            "using the `AutoModelForQuestionAnswering.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForQuestionAnswering.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_QUESTION_ANSWERING_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a question answering head---from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForQuestionAnswering.from_pretrained` to load the
-            model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForQuestionAnswering
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForQuestionAnswering.from_config(config)
-        """
-        if type(config) in MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys():
-            return MODEL_FOR_QUESTION_ANSWERING_MAPPING[type(config)](config)
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_QUESTION_ANSWERING_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a question answering head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForQuestionAnswering
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForQuestionAnswering.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForQuestionAnswering.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForQuestionAnswering.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys():
-            return MODEL_FOR_QUESTION_ANSWERING_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_QUESTION_ANSWERING_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForTableQuestionAnswering:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a table
-    question answering head---when created with the
-    :meth:`~transformers.AutoModeForTableQuestionAnswering.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForTableQuestionAnswering.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForQuestionAnswering is designed to be instantiated "
-            "using the `AutoModelForTableQuestionAnswering.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForTableQuestionAnswering.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a table question answering head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForTableQuestionAnswering.from_pretrained` to load
-            the model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForTableQuestionAnswering
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('google/tapas-base-finetuned-wtq')
-            >>> model = AutoModelForTableQuestionAnswering.from_config(config)
-        """
-        if type(config) in MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING.keys():
-            return MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING[type(config)](config)
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a table question answering head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForTableQuestionAnswering
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForTableQuestionAnswering.from_pretrained('google/tapas-base-finetuned-wtq')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForTableQuestionAnswering.from_pretrained('google/tapas-base-finetuned-wtq', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/tapas_tf_checkpoint.json')
-            >>> model = AutoModelForQuestionAnswering.from_pretrained('./tf_model/tapas_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING.keys():
-            return MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForTokenClassification:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a token
-    classification head---when created with the :meth:`~transformers.AutoModelForTokenClassification.from_pretrained`
-    class method or the :meth:`~transformers.AutoModelForTokenClassification.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForTokenClassification is designed to be instantiated "
-            "using the `AutoModelForTokenClassification.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForTokenClassification.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a token classification head---from a configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForTokenClassification.from_pretrained` to load
-            the model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForTokenClassification
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForTokenClassification.from_config(config)
-        """
-        if type(config) in MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING.keys():
-            return MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING[type(config)](config)
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a token classification head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForTokenClassification
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForTokenClassification.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForTokenClassification.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForTokenClassification.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING.keys():
-            return MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForMultipleChoice:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a
-    multiple choice classification head---when created with the
-    :meth:`~transformers.AutoModelForMultipleChoice.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForMultipleChoice.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForMultipleChoice is designed to be instantiated "
-            "using the `AutoModelForMultipleChoice.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForMultipleChoice.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_MULTIPLE_CHOICE_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a multiple choice classification head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForMultipleChoice.from_pretrained` to load the
-            model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForMultipleChoice
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForMultipleChoice.from_config(config)
-        """
-        if type(config) in MODEL_FOR_MULTIPLE_CHOICE_MAPPING.keys():
-            return MODEL_FOR_MULTIPLE_CHOICE_MAPPING[type(config)](config)
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_MULTIPLE_CHOICE_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_MULTIPLE_CHOICE_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a multiple choice classification head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForMultipleChoice
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForMultipleChoice.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForMultipleChoice.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForMultipleChoice.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_MULTIPLE_CHOICE_MAPPING.keys():
-            return MODEL_FOR_MULTIPLE_CHOICE_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_MULTIPLE_CHOICE_MAPPING.keys()),
-            )
-        )
-
-
-class AutoModelForNextSentencePrediction:
-    r"""
-    This is a generic model class that will be instantiated as one of the model classes of the library---with a next
-    sentence prediction head---when created with the
-    :meth:`~transformers.AutoModelForNextSentencePrediction.from_pretrained` class method or the
-    :meth:`~transformers.AutoModelForNextSentencePrediction.from_config` class method.
-
-    This class cannot be instantiated directly using ``__init__()`` (throws an error).
-    """
-
-    def __init__(self):
-        raise EnvironmentError(
-            "AutoModelForNextSentencePrediction is designed to be instantiated "
-            "using the `AutoModelForNextSentencePrediction.from_pretrained(pretrained_model_name_or_path)` or "
-            "`AutoModelForNextSentencePrediction.from_config(config)` methods."
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING, use_model_types=False)
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the model classes of the library---with a multiple choice classification head---from a
-        configuration.
-
-        Note:
-            Loading a model from its configuration file does **not** load the model weights. It only affects the
-            model's configuration. Use :meth:`~transformers.AutoModelForNextSentencePrediction.from_pretrained` to load
-            the model weights.
-
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
-
-                List options
-
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForNextSentencePrediction
-            >>> # Download configuration from huggingface.co and cache.
-            >>> config = AutoConfig.from_pretrained('bert-base-uncased')
-            >>> model = AutoModelForNextSentencePrediction.from_config(config)
-        """
-        if type(config) in MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING.keys():
-            return MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING[type(config)](config)
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING.keys()),
-            )
-        )
-
-    @classmethod
-    @replace_list_option_in_docstrings(MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING)
-    @add_start_docstrings(
-        "Instantiate one of the model classes of the library---with a multiple choice classification head---from a "
-        "pretrained model.",
-        AUTO_MODEL_PRETRAINED_DOCSTRING,
-    )
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Examples::
-
-            >>> from transformers import AutoConfig, AutoModelForNextSentencePrediction
-
-            >>> # Download model and configuration from huggingface.co and cache.
-            >>> model = AutoModelForNextSentencePrediction.from_pretrained('bert-base-uncased')
-
-            >>> # Update configuration during loading
-            >>> model = AutoModelForNextSentencePrediction.from_pretrained('bert-base-uncased', output_attentions=True)
-            >>> model.config.output_attentions
-            True
-
-            >>> # Loading from a TF checkpoint file instead of a PyTorch model (slower)
-            >>> config = AutoConfig.from_json_file('./tf_model/bert_tf_model_config.json')
-            >>> model = AutoModelForNextSentencePrediction.from_pretrained('./tf_model/bert_tf_checkpoint.ckpt.index', from_tf=True, config=config)
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config, kwargs = AutoConfig.from_pretrained(
-                pretrained_model_name_or_path, return_unused_kwargs=True, **kwargs
-            )
-
-        if type(config) in MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING.keys():
-            return MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING[type(config)].from_pretrained(
-                pretrained_model_name_or_path, *model_args, config=config, **kwargs
-            )
-
-        raise ValueError(
-            "Unrecognized configuration class {} for this kind of AutoModel: {}.\n"
-            "Model type should be one of {}.".format(
-                config.__class__,
-                cls.__name__,
-                ", ".join(c.__name__ for c in MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING.keys()),
-            )
-        )
+        return super().from_pretrained(pretrained_model_name_or_path, *model_args, **kwargs)
+
+
+__all__ = [
+    "MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_AUDIO_FRAME_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_AUDIO_XVECTOR_MAPPING",
+    "MODEL_FOR_BACKBONE_MAPPING",
+    "MODEL_FOR_CAUSAL_IMAGE_MODELING_MAPPING",
+    "MODEL_FOR_CAUSAL_LM_MAPPING",
+    "MODEL_FOR_CTC_MAPPING",
+    "MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING",
+    "MODEL_FOR_DEPTH_ESTIMATION_MAPPING",
+    "MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_IMAGE_MAPPING",
+    "MODEL_FOR_IMAGE_SEGMENTATION_MAPPING",
+    "MODEL_FOR_IMAGE_TO_IMAGE_MAPPING",
+    "MODEL_FOR_KEYPOINT_DETECTION_MAPPING",
+    "MODEL_FOR_INSTANCE_SEGMENTATION_MAPPING",
+    "MODEL_FOR_MASKED_IMAGE_MODELING_MAPPING",
+    "MODEL_FOR_MASKED_LM_MAPPING",
+    "MODEL_FOR_MASK_GENERATION_MAPPING",
+    "MODEL_FOR_MULTIPLE_CHOICE_MAPPING",
+    "MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING",
+    "MODEL_FOR_OBJECT_DETECTION_MAPPING",
+    "MODEL_FOR_PRETRAINING_MAPPING",
+    "MODEL_FOR_QUESTION_ANSWERING_MAPPING",
+    "MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING",
+    "MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING",
+    "MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING",
+    "MODEL_FOR_TABLE_QUESTION_ANSWERING_MAPPING",
+    "MODEL_FOR_TEXT_ENCODING_MAPPING",
+    "MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING",
+    "MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING",
+    "MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING",
+    "MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING",
+    "MODEL_FOR_VIDEO_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_VISION_2_SEQ_MAPPING",
+    "MODEL_FOR_RETRIEVAL_MAPPING",
+    "MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING",
+    "MODEL_FOR_VISUAL_QUESTION_ANSWERING_MAPPING",
+    "MODEL_MAPPING",
+    "MODEL_WITH_LM_HEAD_MAPPING",
+    "MODEL_FOR_ZERO_SHOT_IMAGE_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_ZERO_SHOT_OBJECT_DETECTION_MAPPING",
+    "MODEL_FOR_TIME_SERIES_CLASSIFICATION_MAPPING",
+    "MODEL_FOR_TIME_SERIES_REGRESSION_MAPPING",
+    "AutoModel",
+    "AutoBackbone",
+    "AutoModelForAudioClassification",
+    "AutoModelForAudioFrameClassification",
+    "AutoModelForAudioXVector",
+    "AutoModelForCausalLM",
+    "AutoModelForCTC",
+    "AutoModelForDepthEstimation",
+    "AutoModelForImageClassification",
+    "AutoModelForImageSegmentation",
+    "AutoModelForImageToImage",
+    "AutoModelForInstanceSegmentation",
+    "AutoModelForKeypointDetection",
+    "AutoModelForMaskGeneration",
+    "AutoModelForTextEncoding",
+    "AutoModelForMaskedImageModeling",
+    "AutoModelForMaskedLM",
+    "AutoModelForMultipleChoice",
+    "AutoModelForNextSentencePrediction",
+    "AutoModelForObjectDetection",
+    "AutoModelForPreTraining",
+    "AutoModelForQuestionAnswering",
+    "AutoModelForSemanticSegmentation",
+    "AutoModelForSeq2SeqLM",
+    "AutoModelForSequenceClassification",
+    "AutoModelForSpeechSeq2Seq",
+    "AutoModelForTableQuestionAnswering",
+    "AutoModelForTextToSpectrogram",
+    "AutoModelForTextToWaveform",
+    "AutoModelForTokenClassification",
+    "AutoModelForUniversalSegmentation",
+    "AutoModelForVideoClassification",
+    "AutoModelForVision2Seq",
+    "AutoModelForVisualQuestionAnswering",
+    "AutoModelForDocumentQuestionAnswering",
+    "AutoModelWithLMHead",
+    "AutoModelForZeroShotImageClassification",
+    "AutoModelForZeroShotObjectDetection",
+    "AutoModelForImageTextToText",
+]

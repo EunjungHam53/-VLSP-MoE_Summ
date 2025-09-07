@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tokenization classes for RAG."""
+
 import os
 import warnings
-from contextlib import contextmanager
 from typing import List, Optional
 
 from ...tokenization_utils_base import BatchEncoding
@@ -34,7 +34,7 @@ class RagTokenizer:
 
     def save_pretrained(self, save_directory):
         if os.path.isfile(save_directory):
-            raise ValueError("Provided path ({}) should be a directory, not a file".format(save_directory))
+            raise ValueError(f"Provided path ({save_directory}) should be a directory, not a file")
         os.makedirs(save_directory, exist_ok=True)
         question_encoder_path = os.path.join(save_directory, "question_encoder_tokenizer")
         generator_path = os.path.join(save_directory, "generator_tokenizer")
@@ -68,15 +68,11 @@ class RagTokenizer:
     def decode(self, *args, **kwargs):
         return self.generator.decode(*args, **kwargs)
 
-    @contextmanager
-    def as_target_tokenizer(self):
-        """
-        Temporarily sets the tokenizer for encoding the targets. Useful for tokenizer associated to
-        sequence-to-sequence models that need a slightly different processing for the labels.
-        """
-        self.current_tokenizer = self.generator
-        yield
+    def _switch_to_input_mode(self):
         self.current_tokenizer = self.question_encoder
+
+    def _switch_to_target_mode(self):
+        self.current_tokenizer = self.generator
 
     def prepare_seq2seq_batch(
         self,
@@ -85,7 +81,7 @@ class RagTokenizer:
         max_length: Optional[int] = None,
         max_target_length: Optional[int] = None,
         padding: str = "longest",
-        return_tensors: str = None,
+        return_tensors: Optional[str] = None,
         truncation: bool = True,
         **kwargs,
     ) -> BatchEncoding:
@@ -110,17 +106,19 @@ class RagTokenizer:
         if tgt_texts is None:
             return model_inputs
         # Process tgt_texts
-        with self.as_target_tokenizer():
-            if max_target_length is None:
-                max_target_length = self.current_tokenizer.model_max_length
-            labels = self(
-                tgt_texts,
-                add_special_tokens=True,
-                return_tensors=return_tensors,
-                padding=padding,
-                max_length=max_target_length,
-                truncation=truncation,
-                **kwargs,
-            )
+        if max_target_length is None:
+            max_target_length = self.current_tokenizer.model_max_length
+        labels = self(
+            text_target=tgt_texts,
+            add_special_tokens=True,
+            return_tensors=return_tensors,
+            padding=padding,
+            max_length=max_target_length,
+            truncation=truncation,
+            **kwargs,
+        )
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
+
+
+__all__ = ["RagTokenizer"]

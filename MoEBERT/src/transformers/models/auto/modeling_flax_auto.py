@@ -12,155 +12,402 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Auto Model class. """
-
+"""Auto Model class."""
 
 from collections import OrderedDict
 
-from ...configuration_utils import PretrainedConfig
 from ...utils import logging
-from ..bert.modeling_flax_bert import FlaxBertModel
-from ..roberta.modeling_flax_roberta import FlaxRobertaModel
-from .configuration_auto import AutoConfig, BertConfig, RobertaConfig
+from .auto_factory import _BaseAutoModelClass, _LazyAutoMapping, auto_class_update
+from .configuration_auto import CONFIG_MAPPING_NAMES
 
 
 logger = logging.get_logger(__name__)
 
 
-FLAX_MODEL_MAPPING = OrderedDict(
+FLAX_MODEL_MAPPING_NAMES = OrderedDict(
     [
-        (RobertaConfig, FlaxRobertaModel),
-        (BertConfig, FlaxBertModel),
+        # Base model mapping
+        ("albert", "FlaxAlbertModel"),
+        ("bart", "FlaxBartModel"),
+        ("beit", "FlaxBeitModel"),
+        ("bert", "FlaxBertModel"),
+        ("big_bird", "FlaxBigBirdModel"),
+        ("blenderbot", "FlaxBlenderbotModel"),
+        ("blenderbot-small", "FlaxBlenderbotSmallModel"),
+        ("bloom", "FlaxBloomModel"),
+        ("clip", "FlaxCLIPModel"),
+        ("dinov2", "FlaxDinov2Model"),
+        ("distilbert", "FlaxDistilBertModel"),
+        ("electra", "FlaxElectraModel"),
+        ("gemma", "FlaxGemmaModel"),
+        ("gpt-sw3", "FlaxGPT2Model"),
+        ("gpt2", "FlaxGPT2Model"),
+        ("gpt_neo", "FlaxGPTNeoModel"),
+        ("gptj", "FlaxGPTJModel"),
+        ("llama", "FlaxLlamaModel"),
+        ("longt5", "FlaxLongT5Model"),
+        ("marian", "FlaxMarianModel"),
+        ("mbart", "FlaxMBartModel"),
+        ("mistral", "FlaxMistralModel"),
+        ("mt5", "FlaxMT5Model"),
+        ("opt", "FlaxOPTModel"),
+        ("pegasus", "FlaxPegasusModel"),
+        ("regnet", "FlaxRegNetModel"),
+        ("resnet", "FlaxResNetModel"),
+        ("roberta", "FlaxRobertaModel"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormModel"),
+        ("roformer", "FlaxRoFormerModel"),
+        ("t5", "FlaxT5Model"),
+        ("vision-text-dual-encoder", "FlaxVisionTextDualEncoderModel"),
+        ("vit", "FlaxViTModel"),
+        ("wav2vec2", "FlaxWav2Vec2Model"),
+        ("whisper", "FlaxWhisperModel"),
+        ("xglm", "FlaxXGLMModel"),
+        ("xlm-roberta", "FlaxXLMRobertaModel"),
     ]
 )
 
+FLAX_MODEL_FOR_PRETRAINING_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for pre-training mapping
+        ("albert", "FlaxAlbertForPreTraining"),
+        ("bart", "FlaxBartForConditionalGeneration"),
+        ("bert", "FlaxBertForPreTraining"),
+        ("big_bird", "FlaxBigBirdForPreTraining"),
+        ("electra", "FlaxElectraForPreTraining"),
+        ("longt5", "FlaxLongT5ForConditionalGeneration"),
+        ("mbart", "FlaxMBartForConditionalGeneration"),
+        ("mt5", "FlaxMT5ForConditionalGeneration"),
+        ("roberta", "FlaxRobertaForMaskedLM"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForMaskedLM"),
+        ("roformer", "FlaxRoFormerForMaskedLM"),
+        ("t5", "FlaxT5ForConditionalGeneration"),
+        ("wav2vec2", "FlaxWav2Vec2ForPreTraining"),
+        ("whisper", "FlaxWhisperForConditionalGeneration"),
+        ("xlm-roberta", "FlaxXLMRobertaForMaskedLM"),
+    ]
+)
 
-class FlaxAutoModel(object):
-    r"""
-    :class:`~transformers.FlaxAutoModel` is a generic model class that will be instantiated as one of the base model
-    classes of the library when created with the `FlaxAutoModel.from_pretrained(pretrained_model_name_or_path)` or the
-    `FlaxAutoModel.from_config(config)` class methods.
+FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Masked LM mapping
+        ("albert", "FlaxAlbertForMaskedLM"),
+        ("bart", "FlaxBartForConditionalGeneration"),
+        ("bert", "FlaxBertForMaskedLM"),
+        ("big_bird", "FlaxBigBirdForMaskedLM"),
+        ("distilbert", "FlaxDistilBertForMaskedLM"),
+        ("electra", "FlaxElectraForMaskedLM"),
+        ("mbart", "FlaxMBartForConditionalGeneration"),
+        ("roberta", "FlaxRobertaForMaskedLM"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForMaskedLM"),
+        ("roformer", "FlaxRoFormerForMaskedLM"),
+        ("xlm-roberta", "FlaxXLMRobertaForMaskedLM"),
+    ]
+)
 
-    This class cannot be instantiated using `__init__()` (throws an error).
-    """
+FLAX_MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Seq2Seq Causal LM mapping
+        ("bart", "FlaxBartForConditionalGeneration"),
+        ("blenderbot", "FlaxBlenderbotForConditionalGeneration"),
+        ("blenderbot-small", "FlaxBlenderbotSmallForConditionalGeneration"),
+        ("encoder-decoder", "FlaxEncoderDecoderModel"),
+        ("longt5", "FlaxLongT5ForConditionalGeneration"),
+        ("marian", "FlaxMarianMTModel"),
+        ("mbart", "FlaxMBartForConditionalGeneration"),
+        ("mt5", "FlaxMT5ForConditionalGeneration"),
+        ("pegasus", "FlaxPegasusForConditionalGeneration"),
+        ("t5", "FlaxT5ForConditionalGeneration"),
+    ]
+)
 
-    def __init__(self):
-        raise EnvironmentError(
-            "FlaxAutoModel is designed to be instantiated "
-            "using the `FlaxAutoModel.from_pretrained(pretrained_model_name_or_path)` or "
-            "`FlaxAutoModel.from_config(config)` methods."
-        )
+FLAX_MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Image-classification
+        ("beit", "FlaxBeitForImageClassification"),
+        ("dinov2", "FlaxDinov2ForImageClassification"),
+        ("regnet", "FlaxRegNetForImageClassification"),
+        ("resnet", "FlaxResNetForImageClassification"),
+        ("vit", "FlaxViTForImageClassification"),
+    ]
+)
 
-    @classmethod
-    def from_config(cls, config):
-        r"""
-        Instantiates one of the base model classes of the library from a configuration.
+FLAX_MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES = OrderedDict(
+    [
+        ("vision-encoder-decoder", "FlaxVisionEncoderDecoderModel"),
+    ]
+)
 
-        Args:
-            config (:class:`~transformers.PretrainedConfig`):
-                The model class to instantiate is selected based on the configuration class:
+FLAX_MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Causal LM mapping
+        ("bart", "FlaxBartForCausalLM"),
+        ("bert", "FlaxBertForCausalLM"),
+        ("big_bird", "FlaxBigBirdForCausalLM"),
+        ("bloom", "FlaxBloomForCausalLM"),
+        ("electra", "FlaxElectraForCausalLM"),
+        ("gemma", "FlaxGemmaForCausalLM"),
+        ("gpt-sw3", "FlaxGPT2LMHeadModel"),
+        ("gpt2", "FlaxGPT2LMHeadModel"),
+        ("gpt_neo", "FlaxGPTNeoForCausalLM"),
+        ("gptj", "FlaxGPTJForCausalLM"),
+        ("llama", "FlaxLlamaForCausalLM"),
+        ("mistral", "FlaxMistralForCausalLM"),
+        ("opt", "FlaxOPTForCausalLM"),
+        ("roberta", "FlaxRobertaForCausalLM"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForCausalLM"),
+        ("xglm", "FlaxXGLMForCausalLM"),
+        ("xlm-roberta", "FlaxXLMRobertaForCausalLM"),
+    ]
+)
 
-                - isInstance of `roberta` configuration class: :class:`~transformers.FlaxRobertaModel` (RoBERTa model)
-                - isInstance of `bert` configuration class: :class:`~transformers.FlaxBertModel` (Bert model
+FLAX_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Sequence Classification mapping
+        ("albert", "FlaxAlbertForSequenceClassification"),
+        ("bart", "FlaxBartForSequenceClassification"),
+        ("bert", "FlaxBertForSequenceClassification"),
+        ("big_bird", "FlaxBigBirdForSequenceClassification"),
+        ("distilbert", "FlaxDistilBertForSequenceClassification"),
+        ("electra", "FlaxElectraForSequenceClassification"),
+        ("mbart", "FlaxMBartForSequenceClassification"),
+        ("roberta", "FlaxRobertaForSequenceClassification"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForSequenceClassification"),
+        ("roformer", "FlaxRoFormerForSequenceClassification"),
+        ("xlm-roberta", "FlaxXLMRobertaForSequenceClassification"),
+    ]
+)
 
-        Examples::
+FLAX_MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Question Answering mapping
+        ("albert", "FlaxAlbertForQuestionAnswering"),
+        ("bart", "FlaxBartForQuestionAnswering"),
+        ("bert", "FlaxBertForQuestionAnswering"),
+        ("big_bird", "FlaxBigBirdForQuestionAnswering"),
+        ("distilbert", "FlaxDistilBertForQuestionAnswering"),
+        ("electra", "FlaxElectraForQuestionAnswering"),
+        ("mbart", "FlaxMBartForQuestionAnswering"),
+        ("roberta", "FlaxRobertaForQuestionAnswering"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForQuestionAnswering"),
+        ("roformer", "FlaxRoFormerForQuestionAnswering"),
+        ("xlm-roberta", "FlaxXLMRobertaForQuestionAnswering"),
+    ]
+)
 
-            config = BertConfig.from_pretrained('bert-base-uncased')
-            # Download configuration from huggingface.co and cache.
-            model = FlaxAutoModel.from_config(config)
-            # E.g. model was saved using `save_pretrained('./test/saved_model/')`
-        """
-        for config_class, model_class in FLAX_MODEL_MAPPING.items():
-            if isinstance(config, config_class):
-                return model_class(config)
-        raise ValueError(
-            f"Unrecognized configuration class {config.__class__} "
-            f"for this kind of FlaxAutoModel: {cls.__name__}.\n"
-            f"Model type should be one of {', '.join(c.__name__ for c in FLAX_MODEL_MAPPING.keys())}."
-        )
+FLAX_MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Token Classification mapping
+        ("albert", "FlaxAlbertForTokenClassification"),
+        ("bert", "FlaxBertForTokenClassification"),
+        ("big_bird", "FlaxBigBirdForTokenClassification"),
+        ("distilbert", "FlaxDistilBertForTokenClassification"),
+        ("electra", "FlaxElectraForTokenClassification"),
+        ("roberta", "FlaxRobertaForTokenClassification"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForTokenClassification"),
+        ("roformer", "FlaxRoFormerForTokenClassification"),
+        ("xlm-roberta", "FlaxXLMRobertaForTokenClassification"),
+    ]
+)
 
-    @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        r"""
-        Instantiates one of the base model classes of the library from a pre-trained model configuration.
+FLAX_MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES = OrderedDict(
+    [
+        # Model for Multiple Choice mapping
+        ("albert", "FlaxAlbertForMultipleChoice"),
+        ("bert", "FlaxBertForMultipleChoice"),
+        ("big_bird", "FlaxBigBirdForMultipleChoice"),
+        ("distilbert", "FlaxDistilBertForMultipleChoice"),
+        ("electra", "FlaxElectraForMultipleChoice"),
+        ("roberta", "FlaxRobertaForMultipleChoice"),
+        ("roberta-prelayernorm", "FlaxRobertaPreLayerNormForMultipleChoice"),
+        ("roformer", "FlaxRoFormerForMultipleChoice"),
+        ("xlm-roberta", "FlaxXLMRobertaForMultipleChoice"),
+    ]
+)
 
-        The `from_pretrained()` method takes care of returning the correct model class instance based on the
-        `model_type` property of the config object, or when it's missing, falling back to using pattern matching on the
-        `pretrained_model_name_or_path` string.
+FLAX_MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING_NAMES = OrderedDict(
+    [
+        ("bert", "FlaxBertForNextSentencePrediction"),
+    ]
+)
 
-        The base model class to instantiate is selected as the first pattern matching in the
-        `pretrained_model_name_or_path` string (in the following order):
+FLAX_MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES = OrderedDict(
+    [
+        ("speech-encoder-decoder", "FlaxSpeechEncoderDecoderModel"),
+        ("whisper", "FlaxWhisperForConditionalGeneration"),
+    ]
+)
 
-            - contains `roberta`: :class:`~transformers.FlaxRobertaModel` (RoBERTa model)
-            - contains `bert`: :class:`~transformers.FlaxBertModel` (Bert model)
+FLAX_MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING_NAMES = OrderedDict(
+    [
+        ("whisper", "FlaxWhisperForAudioClassification"),
+    ]
+)
 
-            The model is set in evaluation mode by default using `model.eval()` (Dropout modules are deactivated) To
-            train the model, you should first set it back in training mode with `model.train()`
+FLAX_MODEL_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, FLAX_MODEL_MAPPING_NAMES)
+FLAX_MODEL_FOR_PRETRAINING_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_PRETRAINING_MAPPING_NAMES)
+FLAX_MODEL_FOR_MASKED_LM_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_MASKED_LM_MAPPING_NAMES)
+FLAX_MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_VISION_2_SEQ_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES)
+FLAX_MODEL_FOR_CAUSAL_LM_MAPPING = _LazyAutoMapping(CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_CAUSAL_LM_MAPPING_NAMES)
+FLAX_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_QUESTION_ANSWERING_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_MULTIPLE_CHOICE_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_MULTIPLE_CHOICE_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES
+)
+FLAX_MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING = _LazyAutoMapping(
+    CONFIG_MAPPING_NAMES, FLAX_MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING_NAMES
+)
 
-        Args:
-            pretrained_model_name_or_path: either:
 
-                - a string, the `model id` of a pretrained model hosted inside a model repo on huggingface.co. Valid
-                  model ids can be located at the root-level, like ``bert-base-uncased``, or namespaced under a user or
-                  organization name, like ``dbmdz/bert-base-german-cased``.
-                - a path to a `directory` containing model weights saved using
-                  :func:`~transformers.FlaxPreTrainedModel.save_pretrained`, e.g.: ``./my_model_directory/``.
-                - a path or url to a `pytorch index checkpoint file` (e.g. `./pt_model/pytorch_model.bin`). In this
-                  case, ``from_pt`` should be set to True and a configuration object should be provided as ``config``
-                  argument.
+class FlaxAutoModel(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_MAPPING
 
-            model_args: (`optional`) Sequence of positional arguments:
-                All remaining positional arguments will be passed to the underlying model's ``__init__`` method
 
-            config: (`optional`) instance of a class derived from :class:`~transformers.PretrainedConfig`:
-                Configuration for the model to use instead of an automatically loaded configuration. Configuration can
-                be automatically loaded when:
+FlaxAutoModel = auto_class_update(FlaxAutoModel)
 
-                - the model is a model provided by the library (loaded with the ``shortcut-name`` string of a
-                  pretrained model), or
-                - the model was saved using :func:`~transformers.FlaxPreTrainedModel.save_pretrained` and is reloaded
-                  by supplying the save directory.
-                - the model is loaded by supplying a local directory as ``pretrained_model_name_or_path`` and a
-                  configuration JSON file named `config.json` is found in the directory.
 
-            cache_dir: (`optional`) string:
-                Path to a directory in which a downloaded pre-trained model configuration should be cached if the
-                standard cache should not be used.
+class FlaxAutoModelForPreTraining(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_PRETRAINING_MAPPING
 
-            force_download: (`optional`) boolean, default False:
-                Force to (re-)download the model weights and configuration files and override the cached versions if
-                they exists.
 
-            resume_download: (`optional`) boolean, default False:
-                Do not delete incompletely received file. Attempt to resume the download if such a file exists.
+FlaxAutoModelForPreTraining = auto_class_update(FlaxAutoModelForPreTraining, head_doc="pretraining")
 
-            proxies: (`optional`) dict, default None:
-                A dictionary of proxy servers to use by protocol or endpoint, e.g.: {'http': 'foo.bar:3128',
-                'http://hostname': 'foo.bar:4012'}. The proxies are used on each request.
 
-            output_loading_info: (`optional`) boolean:
-                Set to ``True`` to also return a dictionary containing missing keys, unexpected keys and error
-                messages.
+class FlaxAutoModelForCausalLM(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_CAUSAL_LM_MAPPING
 
-            kwargs: (`optional`) Remaining dictionary of keyword arguments:
-                These arguments will be passed to the configuration and the model.
 
-        Examples::
+FlaxAutoModelForCausalLM = auto_class_update(FlaxAutoModelForCausalLM, head_doc="causal language modeling")
 
-            model = FlaxAutoModel.from_pretrained('bert-base-uncased')    # Download model and configuration from huggingface.co and cache.
-            model = FlaxAutoModel.from_pretrained('./test/bert_model/')  # E.g. model was saved using `save_pretrained('./test/saved_model/')`
-            assert model.config.output_attention == True
 
-        """
-        config = kwargs.pop("config", None)
-        if not isinstance(config, PretrainedConfig):
-            config = AutoConfig.from_pretrained(pretrained_model_name_or_path, **kwargs)
+class FlaxAutoModelForMaskedLM(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_MASKED_LM_MAPPING
 
-        for config_class, model_class in FLAX_MODEL_MAPPING.items():
-            if isinstance(config, config_class):
-                return model_class.from_pretrained(pretrained_model_name_or_path, *model_args, config=config, **kwargs)
-        raise ValueError(
-            f"Unrecognized configuration class {config.__class__} "
-            f"for this kind of FlaxAutoModel: {cls.__name__}.\n"
-            f"Model type should be one of {', '.join(c.__name__ for c in FLAX_MODEL_MAPPING.keys())}"
-        )
+
+FlaxAutoModelForMaskedLM = auto_class_update(FlaxAutoModelForMaskedLM, head_doc="masked language modeling")
+
+
+class FlaxAutoModelForSeq2SeqLM(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING
+
+
+FlaxAutoModelForSeq2SeqLM = auto_class_update(
+    FlaxAutoModelForSeq2SeqLM,
+    head_doc="sequence-to-sequence language modeling",
+    checkpoint_for_example="google-t5/t5-base",
+)
+
+
+class FlaxAutoModelForSequenceClassification(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING
+
+
+FlaxAutoModelForSequenceClassification = auto_class_update(
+    FlaxAutoModelForSequenceClassification, head_doc="sequence classification"
+)
+
+
+class FlaxAutoModelForQuestionAnswering(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_QUESTION_ANSWERING_MAPPING
+
+
+FlaxAutoModelForQuestionAnswering = auto_class_update(FlaxAutoModelForQuestionAnswering, head_doc="question answering")
+
+
+class FlaxAutoModelForTokenClassification(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING
+
+
+FlaxAutoModelForTokenClassification = auto_class_update(
+    FlaxAutoModelForTokenClassification, head_doc="token classification"
+)
+
+
+class FlaxAutoModelForMultipleChoice(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_MULTIPLE_CHOICE_MAPPING
+
+
+FlaxAutoModelForMultipleChoice = auto_class_update(FlaxAutoModelForMultipleChoice, head_doc="multiple choice")
+
+
+class FlaxAutoModelForNextSentencePrediction(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING
+
+
+FlaxAutoModelForNextSentencePrediction = auto_class_update(
+    FlaxAutoModelForNextSentencePrediction, head_doc="next sentence prediction"
+)
+
+
+class FlaxAutoModelForImageClassification(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING
+
+
+FlaxAutoModelForImageClassification = auto_class_update(
+    FlaxAutoModelForImageClassification, head_doc="image classification"
+)
+
+
+class FlaxAutoModelForVision2Seq(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_VISION_2_SEQ_MAPPING
+
+
+FlaxAutoModelForVision2Seq = auto_class_update(FlaxAutoModelForVision2Seq, head_doc="vision-to-text modeling")
+
+
+class FlaxAutoModelForSpeechSeq2Seq(_BaseAutoModelClass):
+    _model_mapping = FLAX_MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING
+
+
+FlaxAutoModelForSpeechSeq2Seq = auto_class_update(
+    FlaxAutoModelForSpeechSeq2Seq, head_doc="sequence-to-sequence speech-to-text modeling"
+)
+
+__all__ = [
+    "FLAX_MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING",
+    "FLAX_MODEL_FOR_CAUSAL_LM_MAPPING",
+    "FLAX_MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING",
+    "FLAX_MODEL_FOR_MASKED_LM_MAPPING",
+    "FLAX_MODEL_FOR_MULTIPLE_CHOICE_MAPPING",
+    "FLAX_MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING",
+    "FLAX_MODEL_FOR_PRETRAINING_MAPPING",
+    "FLAX_MODEL_FOR_QUESTION_ANSWERING_MAPPING",
+    "FLAX_MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING",
+    "FLAX_MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING",
+    "FLAX_MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING",
+    "FLAX_MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING",
+    "FLAX_MODEL_FOR_VISION_2_SEQ_MAPPING",
+    "FLAX_MODEL_MAPPING",
+    "FlaxAutoModel",
+    "FlaxAutoModelForCausalLM",
+    "FlaxAutoModelForImageClassification",
+    "FlaxAutoModelForMaskedLM",
+    "FlaxAutoModelForMultipleChoice",
+    "FlaxAutoModelForNextSentencePrediction",
+    "FlaxAutoModelForPreTraining",
+    "FlaxAutoModelForQuestionAnswering",
+    "FlaxAutoModelForSeq2SeqLM",
+    "FlaxAutoModelForSequenceClassification",
+    "FlaxAutoModelForSpeechSeq2Seq",
+    "FlaxAutoModelForTokenClassification",
+    "FlaxAutoModelForVision2Seq",
+]

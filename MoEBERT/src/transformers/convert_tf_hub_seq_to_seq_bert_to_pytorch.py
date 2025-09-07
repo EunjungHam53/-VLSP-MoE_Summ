@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2020 The HuggingFace Inc. team.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Convert Seq2Seq TF Hub checkpoint."""
-
 
 import argparse
 
@@ -33,7 +31,7 @@ logging.set_verbosity_info()
 def convert_tf_checkpoint_to_pytorch(tf_hub_path, pytorch_dump_path, is_encoder_named_decoder, vocab_size, is_encoder):
     # Initialise PyTorch model
     bert_config = BertConfig.from_pretrained(
-        "bert-large-cased",
+        "google-bert/bert-large-cased",
         vocab_size=vocab_size,
         max_position_embeddings=512,
         is_decoder=True,
@@ -46,7 +44,7 @@ def convert_tf_checkpoint_to_pytorch(tf_hub_path, pytorch_dump_path, is_encoder_
         model = BertGenerationEncoder(config)
     else:
         model = BertGenerationDecoder(config)
-    print("Building PyTorch model from configuration: {}".format(str(config)))
+    print(f"Building PyTorch model from configuration: {config}")
 
     # Load weights from tf checkpoint
     load_tf_weights_in_bert_generation(
@@ -58,7 +56,7 @@ def convert_tf_checkpoint_to_pytorch(tf_hub_path, pytorch_dump_path, is_encoder_
     )
 
     # Save pytorch-model
-    print("Save PyTorch model and config to {}".format(pytorch_dump_path))
+    print(f"Save PyTorch model and config to {pytorch_dump_path}")
     model.save_pretrained(pytorch_dump_path)
 
 

@@ -48,7 +48,7 @@ from transformers.moebert.utils import (
     MoEModelOutputWithPooling,
 )
 
-from transformers.moebert.moe_layer import MoELayer
+# from transformers.moebert.moe_layer import MoELayer
 
 logger = logging.getLogger(__name__)
 
